@@ -92,6 +92,22 @@
   }
   input[type="text"]::placeholder { color: #6d7a6e; }
   input[type="text"]:focus { outline: 2px solid var(--signal); outline-offset: 1px; border-color: transparent; }
+  textarea {
+    width: 100%;
+    background: var(--asphalt-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--paper);
+    padding: 8px 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    min-height: 86px;
+    resize: vertical;
+    margin-bottom: 6px;
+  }
+  textarea::placeholder { color: #6d7a6e; font-family: 'Barlow', sans-serif; font-size: 13px; }
+  textarea:focus { outline: 2px solid var(--signal); outline-offset: 1px; border-color: transparent; }
+  #teamCode { width: 100%; margin-bottom: 6px; }
   button {
     font: inherit;
     font-weight: 600;
@@ -280,6 +296,24 @@
     <p class="hint">Everything saves automatically in this browser. Use Backup / Import to move data between computers or combine a teammate's tagging with yours.</p>
   </section>
 
+  <section>
+    <div class="sec-label">Team sync</div>
+    <div class="hint" id="syncStatus" style="margin-top:0; margin-bottom:8px;">Off — data stays on this device.</div>
+    <div id="syncSetup" hidden>
+      <textarea id="syncConfig" placeholder="Paste your Firebase config snippet here — or a setup code from a teammate" aria-label="Sync configuration"></textarea>
+      <input type="text" id="teamCode" placeholder="Team code (same on every device)" aria-label="Team code">
+      <div class="btn-grid">
+        <button id="syncConnect">Connect</button>
+        <button class="ghost" id="syncCancel">Cancel</button>
+      </div>
+    </div>
+    <div class="btn-grid" id="syncBtns">
+      <button class="ghost" id="syncOpen">Set up sync</button>
+      <button class="ghost" id="syncShare" hidden>Copy setup code</button>
+      <button class="ghost" id="syncOff" hidden>Turn off sync</button>
+    </div>
+  </section>
+
   <footer>
     Street data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, via Overpass &amp; Nominatim. Basemap © CARTO.
   </footer>
@@ -423,6 +457,7 @@ async function loadStreets(sel) {
   h.name = sel.name;
   DB.lastHood = { key: hoodKey, osmType: sel.osmType, osmId: sel.osmId, name: sel.name, bbox: sel.bbox, display: sel.display };
   save();
+  pushHoodName(hoodKey, sel.name);
 
   setStatus('Loading streets for ' + sel.name + '…');
   let query;
@@ -507,6 +542,7 @@ function onStreetClick(key) {
     else rec.tags.push({ id: activeTag, on: new Date().toISOString() });
   }
   save();
+  pushStreet(hoodKey, key);
   restyleGroup(key);
   refreshChips();
 }
@@ -591,7 +627,7 @@ function refreshChips() {
 
     chip.querySelector('input[type=color]').addEventListener('click', e => e.stopPropagation());
     chip.querySelector('input[type=color]').addEventListener('input', e => {
-      t.color = e.target.value; save();
+      t.color = e.target.value; save(); pushTags();
       chip.querySelector('.blade').style.background = t.color;
       restyleAll();
     });
@@ -608,7 +644,7 @@ function refreshChips() {
         DB.hoods[hk].streets[sk].tags = DB.hoods[hk].streets[sk].tags.filter(x => x.id !== t.id);
       if (activeTag === t.id) activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
       if (spotlightTag === t.id) spotlightTag = null;
-      save(); restyleAll(); refreshChips();
+      save(); overwritePush(); restyleAll(); refreshChips();
     });
     box.appendChild(chip);
   });
@@ -630,7 +666,7 @@ $('addTag').addEventListener('click', () => {
   if (!label) return;
   DB.tags.push({ id: 't-' + Date.now().toString(36), label, color: $('newColor').value });
   $('newLabel').value = '';
-  save(); refreshChips();
+  save(); pushTags(); refreshChips();
 });
 $('newLabel').addEventListener('keydown', e => { if (e.key === 'Enter') $('addTag').click(); });
 
@@ -684,7 +720,7 @@ $('filepick').addEventListener('change', async e => {
         });
       }
     }
-    save(); restyleAll(); refreshChips(); refreshHoodline();
+    save(); mergePush(); restyleAll(); refreshChips(); refreshHoodline();
     setStatus('Import merged. Counts updated.');
   } catch (err) {
     setStatus('Import failed: not a valid backup file.', true);
@@ -696,7 +732,7 @@ $('clearHood').addEventListener('click', () => {
   if (!hoodKey) return;
   if (!confirm('Clear all tagging for ' + hood().name + '? This cannot be undone.')) return;
   hood().streets = {};
-  save(); restyleAll(); refreshChips(); refreshHoodline();
+  save(); pushClearHood(hoodKey); restyleAll(); refreshChips(); refreshHoodline();
 });
 
 function download(filename, text, mime) {
@@ -707,9 +743,192 @@ function download(filename, text, mime) {
   URL.revokeObjectURL(a.href);
 }
 
+/* ---------- team sync (Firebase Realtime Database) ---------- */
+const SYNC_KEY = 'street-tagger-sync';
+let fbRef = null, syncLive = false;
+
+function getSetup() {
+  try { return JSON.parse(localStorage.getItem(SYNC_KEY)); } catch (e) { return null; }
+}
+function setSyncStatus(msg, isErr) {
+  const el = $('syncStatus');
+  el.textContent = msg;
+  el.style.color = isErr ? 'var(--danger)' : '';
+}
+// Firebase keys can't contain . # $ / [ ] — encode them reversibly
+function sanKey(s) { return String(s).replace(/[.#$\/\[\]%]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')); }
+function unsanKey(s) { return String(s).replace(/%([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))); }
+function arr(a) { return !a ? [] : (Array.isArray(a) ? a.filter(Boolean) : Object.values(a)); }
+
+// Accepts either a pasted firebaseConfig snippet or a teammate's setup code
+function parseSetup(text) {
+  text = (text || '').trim();
+  if (!text) return null;
+  try {
+    const o = JSON.parse(atob(text));
+    if (o && o.config && o.config.apiKey) return o;
+  } catch (e) { /* not a setup code — try config snippet */ }
+  const cfg = {};
+  const re = /["']?(\w+)["']?\s*:\s*["']([^"']+)["']/g;
+  let m;
+  while ((m = re.exec(text))) cfg[m[1]] = m[2];
+  if (!cfg.apiKey || !cfg.projectId) return null;
+  if (!cfg.databaseURL) cfg.databaseURL = 'https://' + cfg.projectId + '-default-rtdb.firebaseio.com';
+  return { config: cfg, team: null };
+}
+
+function loadFirebaseSdk() {
+  return new Promise((resolve, reject) => {
+    if (window.firebase && window.firebase.database) return resolve();
+    const urls = [
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js'
+    ];
+    (function next(i) {
+      if (i >= urls.length) return resolve();
+      const s = document.createElement('script');
+      s.src = urls[i];
+      s.onload = () => next(i + 1);
+      s.onerror = () => reject(new Error('could not load the sync library — check your connection'));
+      document.head.appendChild(s);
+    })(0);
+  });
+}
+
+// Union local data into what's already in the team database (used on first connect / import)
+function mergedWithRemote(remote) {
+  remote = remote || {};
+  const rTags = arr(remote.tags);
+  DB.tags.forEach(t => { if (!rTags.some(x => x.id === t.id)) rTags.push(t); });
+  const rHoods = remote.hoods || {};
+  for (const hk in DB.hoods) {
+    const shk = sanKey(hk);
+    if (!rHoods[shk]) rHoods[shk] = { name: DB.hoods[hk].name || '', streets: {} };
+    if (!rHoods[shk].streets) rHoods[shk].streets = {};
+    const rs = rHoods[shk].streets;
+    for (const sk in DB.hoods[hk].streets) {
+      const rec = DB.hoods[hk].streets[sk];
+      if (!rec.tags.length) continue;
+      const ssk = sanKey(sk);
+      if (!rs[ssk]) { rs[ssk] = { name: rec.name, tags: rec.tags }; continue; }
+      rs[ssk].tags = arr(rs[ssk].tags);
+      rec.tags.forEach(t => { if (!rs[ssk].tags.some(x => x.id === t.id)) rs[ssk].tags.push(t); });
+    }
+  }
+  return { tags: rTags.length ? rTags : defaultDB().tags, hoods: rHoods };
+}
+
+// Snapshot from the team database becomes our local truth
+function adoptRemote(val) {
+  if (!val) return;
+  if (val.tags) DB.tags = arr(val.tags);
+  const hoods = {};
+  for (const shk in (val.hoods || {})) {
+    const streets = {};
+    const rs = val.hoods[shk].streets || {};
+    for (const ssk in rs) streets[unsanKey(ssk)] = { name: rs[ssk].name || '', tags: arr(rs[ssk].tags) };
+    hoods[unsanKey(shk)] = { name: val.hoods[shk].name || '', streets };
+  }
+  DB.hoods = hoods;
+  if (activeTag !== 'eraser' && !tagById(activeTag)) activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
+  if (spotlightTag && !tagById(spotlightTag)) spotlightTag = null;
+  save(); restyleAll(); refreshChips(); refreshHoodline();
+}
+
+async function connectSync(setup, isNew) {
+  setSyncStatus('Connecting…');
+  await loadFirebaseSdk();
+  if (!window.firebase || !firebase.database) throw new Error('sync library did not load');
+  if (!firebase.apps.length) firebase.initializeApp(setup.config);
+  fbRef = firebase.database().ref('teams/' + sanKey(setup.team));
+
+  // First contact: merge whatever this device already has into the team data
+  const snap = await fbRef.get();
+  await fbRef.set(mergedWithRemote(snap.val()));
+
+  fbRef.on('value', s => adoptRemote(s.val()));
+  firebase.database().ref('.info/connected').on('value', s => {
+    setSyncStatus(s.val() ? 'Live — synced with team "' + setup.team + '"'
+                          : 'Offline — changes will sync when you\'re back online');
+  });
+  syncLive = true;
+  localStorage.setItem(SYNC_KEY, JSON.stringify(setup));
+  $('syncOpen').hidden = true;
+  $('syncShare').hidden = false;
+  $('syncOff').hidden = false;
+  if (isNew) setSyncStatus('Connected! Use "Copy setup code" to invite the team.');
+}
+
+/* granular pushes */
+function pushStreet(hk, sk) {
+  if (!fbRef || !syncLive) return;
+  const rec = DB.hoods[hk] && DB.hoods[hk].streets[sk];
+  const ref = fbRef.child('hoods/' + sanKey(hk) + '/streets/' + sanKey(sk));
+  if (rec && rec.tags.length) ref.set(rec); else ref.set(rec ? { name: rec.name, tags: [] } : null);
+}
+function pushTags() { if (fbRef && syncLive) fbRef.child('tags').set(DB.tags); }
+function pushHoodName(hk, name) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKey(hk) + '/name').set(name); }
+function pushClearHood(hk) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKey(hk) + '/streets').set(null); }
+function mergePush() { if (fbRef && syncLive) fbRef.get().then(s => fbRef.set(mergedWithRemote(s.val()))); }
+function overwritePush() {
+  if (!fbRef || !syncLive) return;
+  const hoods = {};
+  for (const hk in DB.hoods) {
+    const streets = {};
+    for (const sk in DB.hoods[hk].streets) streets[sanKey(sk)] = DB.hoods[hk].streets[sk];
+    hoods[sanKey(hk)] = { name: DB.hoods[hk].name || '', streets };
+  }
+  fbRef.set({ tags: DB.tags, hoods });
+}
+
+/* sync UI */
+$('syncOpen').addEventListener('click', () => {
+  $('syncSetup').hidden = false;
+  $('syncOpen').hidden = true;
+});
+$('syncCancel').addEventListener('click', () => {
+  $('syncSetup').hidden = true;
+  $('syncOpen').hidden = false;
+});
+$('syncConnect').addEventListener('click', async () => {
+  const setup = parseSetup($('syncConfig').value);
+  if (!setup) { setSyncStatus('That doesn\'t look like a Firebase config or setup code. Paste the whole snippet, curly braces and all.', true); return; }
+  setup.team = ($('teamCode').value.trim() || setup.team || '').trim();
+  if (!setup.team) { setSyncStatus('Enter a team code — any word or phrase, same on every device.', true); return; }
+  try {
+    await connectSync(setup, true);
+    $('syncSetup').hidden = true;
+  } catch (e) {
+    const msg = /permission/i.test(e.message)
+      ? 'The database refused the connection — check the Rules step in the setup instructions.'
+      : 'Could not connect: ' + e.message;
+    setSyncStatus(msg, true);
+  }
+});
+$('syncShare').addEventListener('click', async () => {
+  const setup = getSetup();
+  if (!setup) return;
+  const code = btoa(JSON.stringify(setup));
+  try {
+    await navigator.clipboard.writeText(code);
+    setSyncStatus('Setup code copied — send it to a teammate. They paste it in "Set up sync" and hit Connect.');
+  } catch (e) {
+    prompt('Copy this setup code and send it to a teammate:', code);
+  }
+});
+$('syncOff').addEventListener('click', () => {
+  if (!confirm('Turn off sync on this device? Your data stays here and on the team database — this device just stops sharing.')) return;
+  localStorage.removeItem(SYNC_KEY);
+  location.reload();
+});
+
 /* ---------- boot ---------- */
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+const savedSetup = getSetup();
+if (savedSetup) {
+  connectSync(savedSetup, false).catch(e => setSyncStatus('Sync reconnect failed: ' + e.message + ' — will keep working locally.', true));
 }
 refreshChips();
 if (DB.lastHood) {
