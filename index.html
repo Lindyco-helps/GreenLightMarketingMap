@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Street Tagger — Marketing Coverage Map</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#20261f">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Street Tagger">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --asphalt: #20261f;
+    --asphalt-2: #2a322a;
+    --line: #3a423a;
+    --paper: #f4f6f3;
+    --ink: #1a1f1a;
+    --muted: #97a498;
+    --signal: #2fbf71;
+    --danger: #e5533d;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Barlow', system-ui, sans-serif;
+    color: var(--paper);
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar {
+    width: 330px;
+    min-width: 330px;
+    background: var(--asphalt);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 1001;
+    box-shadow: 4px 0 18px rgba(0,0,0,.25);
+  }
+  #sidebar header {
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  #sidebar h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  #sidebar h1 .tick { color: var(--signal); }
+  #sidebar header p {
+    margin-top: 5px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  section { padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .sec-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 9px;
+  }
+
+  /* search */
+  .search-row { display: flex; gap: 6px; }
+  input[type="text"] {
+    flex: 1;
+    background: var(--asphalt-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--paper);
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 14px;
+    min-width: 0;
+  }
+  input[type="text"]::placeholder { color: #6d7a6e; }
+  input[type="text"]:focus { outline: 2px solid var(--signal); outline-offset: 1px; border-color: transparent; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    font-size: 13.5px;
+    border: none;
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    cursor: pointer;
+    background: var(--signal);
+    color: #10241a;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:focus-visible { outline: 2px solid var(--paper); outline-offset: 1px; }
+  button.ghost {
+    background: var(--asphalt-2);
+    color: var(--paper);
+    border: 1px solid var(--line);
+  }
+  #results { margin-top: 8px; display: none; }
+  #results .hit {
+    width: 100%;
+    text-align: left;
+    background: var(--asphalt-2);
+    border: 1px solid var(--line);
+    color: var(--paper);
+    font-weight: 400;
+    margin-bottom: 5px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  #results .hit:hover { border-color: var(--signal); }
+  .opt-row { margin-top: 9px; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
+  .opt-row input { accent-color: var(--signal); }
+
+  #status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 9px;
+    min-height: 15px;
+    white-space: pre-wrap;
+  }
+  #status.err { color: var(--danger); }
+
+  /* material chips — the "sign blade" list */
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    background: var(--asphalt-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 7px 9px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip.active { border-color: var(--signal); box-shadow: inset 0 0 0 1px var(--signal); }
+  .chip .blade {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.35);
+    text-shadow: 0 1px 1px rgba(0,0,0,.35);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chip .count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 26px;
+    text-align: right;
+  }
+  .chip input[type="color"] {
+    width: 20px; height: 20px;
+    border: none; padding: 0; background: none; cursor: pointer;
+  }
+  .chip .del {
+    background: none; border: none; color: var(--muted);
+    font-size: 15px; padding: 0 3px; line-height: 1;
+  }
+  .chip .del:hover { color: var(--danger); }
+  .chip.eraser .blade { background: repeating-linear-gradient(45deg, #556055 0 6px, #454f45 6px 12px); }
+  .add-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+  .add-row input[type="color"] { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: var(--asphalt-2); cursor: pointer; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+  kbd {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+    border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 4px; padding: 0 4px; background: var(--asphalt-2);
+  }
+
+  /* progress + data */
+  #hoodline {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: var(--paper);
+    margin-bottom: 8px; display: none; line-height: 1.5;
+  }
+  #hoodline b { color: var(--signal); font-weight: 500; }
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .btn-grid button { font-size: 12.5px; padding: 7px 6px; }
+  footer { padding: 12px 18px; font-size: 11px; color: #66735f; line-height: 1.5; margin-top: auto; }
+  footer a { color: var(--muted); }
+
+  /* ---------- Map ---------- */
+  #map { flex: 1; height: 100%; background: #dfe6df; }
+  .leaflet-tooltip.street-tip {
+    background: var(--asphalt); color: var(--paper);
+    border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.3);
+    padding: 7px 10px; font-family: 'Barlow', sans-serif;
+  }
+  .street-tip .tt-name {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
+    font-size: 15px; letter-spacing: .07em; text-transform: uppercase;
+  }
+  .street-tip .tt-tag {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; margin-top: 3px;
+  }
+  .street-tip .tt-tag .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .street-tip .tt-tag .dt { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted); margin-left: auto; padding-left: 10px; }
+  .street-tip .tt-none { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  @media (max-width: 760px) {
+    body { flex-direction: column; }
+    #sidebar { width: 100%; min-width: 0; max-height: 46vh; box-shadow: 0 4px 18px rgba(0,0,0,.25); }
+    #map { height: 54vh; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .chip, button { transition: border-color .12s, filter .12s, box-shadow .12s; }
+  }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <header>
+    <h1>Street Tagger <span class="tick">▸</span></h1>
+    <p>Track which streets got which marketing materials.</p>
+  </header>
+
+  <section>
+    <div class="sec-label">Neighborhood</div>
+    <div class="search-row">
+      <input type="text" id="q" placeholder="e.g. Bloomfield, Pittsburgh" aria-label="Search for a neighborhood">
+      <button id="go">Search</button>
+    </div>
+    <div id="results"></div>
+    <label class="opt-row"><input type="checkbox" id="alleys"> Include alleys &amp; service roads</label>
+    <div id="status"></div>
+  </section>
+
+  <section>
+    <div class="sec-label">Materials</div>
+    <div id="chips"></div>
+    <div class="add-row">
+      <input type="color" id="newColor" value="#8e5cd9" aria-label="New material color">
+      <input type="text" id="newLabel" placeholder="Add a material…" aria-label="New material name">
+      <button id="addTag">Add</button>
+    </div>
+    <p class="hint">Pick a material, then click streets on the map to mark them. Click again to unmark. Pick <b>Eraser</b> to clear a street. Click a material's count to spotlight only those streets.</p>
+  </section>
+
+  <section>
+    <div class="sec-label">Data</div>
+    <div id="hoodline"></div>
+    <div class="btn-grid">
+      <button class="ghost" id="exportCsv">Export CSV</button>
+      <button class="ghost" id="exportJson">Backup JSON</button>
+      <button class="ghost" id="importJson">Import JSON</button>
+      <button class="ghost" id="clearHood">Clear this map</button>
+    </div>
+    <input type="file" id="filepick" accept=".json" hidden>
+    <p class="hint">Everything saves automatically in this browser. Use Backup / Import to move data between computers or combine a teammate's tagging with yours.</p>
+  </section>
+
+  <footer>
+    Street data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, via Overpass &amp; Nominatim. Basemap © CARTO.
+  </footer>
+</aside>
+
+<div id="map"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* =========================================================
+   Street Tagger
+   Self-contained. Data lives in localStorage under one key.
+   ========================================================= */
+
+const LS_KEY = 'street-tagger-v1';
+const OVERPASS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
+const UNTAGGED_STYLE = { color: '#93a293', weight: 4, opacity: 0.8 };
+
+/* ---------- persistent state ---------- */
+let DB = load();
+function defaultDB() {
+  return {
+    version: 1,
+    tags: [
+      { id: 't-door', label: 'Door hanger', color: '#2fbf71' },
+      { id: 't-post', label: 'Postcard',    color: '#3b82f6' },
+      { id: 't-fly',  label: 'Flyer',       color: '#f59e0b' }
+    ],
+    hoods: {},     // hoodKey -> { name, streets: { groupKey: { name, tags:[{id, on}] } } }
+    lastHood: null // { key, osmType, osmId, name, bbox }
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.warn('Could not read saved data', e); }
+  return defaultDB();
+}
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
+  catch (e) { setStatus('Warning: could not save (storage full or blocked).', true); }
+}
+
+/* ---------- runtime state ---------- */
+let map, streetLayerGroup;
+let groups = {};            // groupKey -> { name, layers: [] }
+let hoodKey = null;         // current neighborhood key
+let activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
+let spotlightTag = null;    // tag id currently spotlighted via legend, or null
+
+/* ---------- map setup ---------- */
+map = L.map('map', { zoomControl: true }).setView([40.4406, -79.9959], 12);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20,
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+}).addTo(map);
+streetLayerGroup = L.layerGroup().addTo(map);
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+function setStatus(msg, isErr) {
+  const el = $('status');
+  el.textContent = msg || '';
+  el.className = isErr ? 'err' : '';
+}
+function hood() {
+  if (!hoodKey) return null;
+  if (!DB.hoods[hoodKey]) DB.hoods[hoodKey] = { name: '', streets: {} };
+  return DB.hoods[hoodKey];
+}
+function streetRec(key, name) {
+  const h = hood();
+  if (!h.streets[key]) h.streets[key] = { name, tags: [] };
+  return h.streets[key];
+}
+function tagById(id) { return DB.tags.find(t => t.id === id); }
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' });
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ---------- neighborhood search (Nominatim) ---------- */
+$('go').addEventListener('click', doSearch);
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+async function doSearch() {
+  const q = $('q').value.trim();
+  if (!q) return;
+  setStatus('Searching…');
+  $('results').style.display = 'none';
+  try {
+    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' + encodeURIComponent(q);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const hits = await res.json();
+    if (!hits.length) { setStatus('No matches. Try adding the city, e.g. "Bloomfield, Pittsburgh".', true); return; }
+    renderResults(hits);
+    setStatus('');
+  } catch (e) {
+    setStatus('Search failed (' + e.message + '). Check your connection and try again.', true);
+  }
+}
+
+function renderResults(hits) {
+  const box = $('results');
+  box.innerHTML = '';
+  hits.forEach(h => {
+    const b = document.createElement('button');
+    b.className = 'hit';
+    b.textContent = h.display_name;
+    b.addEventListener('click', () => {
+      box.style.display = 'none';
+      loadStreets({
+        osmType: h.osm_type, osmId: h.osm_id,
+        name: h.display_name.split(',')[0],
+        display: h.display_name,
+        bbox: h.boundingbox // [s, n, w, e]
+      });
+    });
+    box.appendChild(b);
+  });
+  box.style.display = 'block';
+}
+
+/* ---------- street loading (Overpass) ---------- */
+function highwayRegex() {
+  const base = 'residential|living_street|unclassified|tertiary|secondary|primary';
+  return $('alleys').checked ? base + '|service' : base;
+}
+
+async function loadStreets(sel) {
+  hoodKey = sel.osmType + '/' + sel.osmId;
+  const h = hood();
+  h.name = sel.name;
+  DB.lastHood = { key: hoodKey, osmType: sel.osmType, osmId: sel.osmId, name: sel.name, bbox: sel.bbox, display: sel.display };
+  save();
+
+  setStatus('Loading streets for ' + sel.name + '…');
+  let query;
+  const hw = highwayRegex();
+  if (sel.osmType === 'relation' || sel.osmType === 'way') {
+    const areaId = (sel.osmType === 'relation' ? 3600000000 : 2400000000) + Number(sel.osmId);
+    query = `[out:json][timeout:60];area(${areaId})->.a;way["highway"~"^(${hw})$"](area.a);out geom;`;
+  } else {
+    let [s, n, w, e] = sel.bbox.map(Number);
+    // Point results come back with a near-zero box — pad to roughly a neighborhood.
+    if (n - s < 0.008) { s -= 0.006; n += 0.006; }
+    if (e - w < 0.008) { w -= 0.008; e += 0.008; }
+    query = `[out:json][timeout:60];way["highway"~"^(${hw})$"](${s},${w},${n},${e});out geom;`;
+  }
+
+  let data = null, lastErr = null;
+  for (const endpoint of OVERPASS) {
+    try {
+      const res = await fetch(endpoint, { method: 'POST', body: 'data=' + encodeURIComponent(query),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+      break;
+    } catch (e) { lastErr = e; }
+  }
+  if (!data) {
+    setStatus('Could not load street data (' + (lastErr && lastErr.message) + '). Overpass may be busy — wait a minute and retry.', true);
+    return;
+  }
+  drawStreets(data.elements || [], sel);
+}
+
+function drawStreets(ways, sel) {
+  streetLayerGroup.clearLayers();
+  groups = {};
+  spotlightTag = null;
+
+  const bounds = L.latLngBounds([]);
+  ways.forEach(w => {
+    if (!w.geometry || w.geometry.length < 2) return;
+    const name = (w.tags && w.tags.name) || null;
+    const key = name ? 'n:' + name.toLowerCase() : 'w:' + w.id;
+    const label = name || 'Unnamed road';
+    if (!groups[key]) groups[key] = { name: label, layers: [] };
+
+    const latlngs = w.geometry.map(p => [p.lat, p.lon]);
+    const line = L.polyline(latlngs, { ...UNTAGGED_STYLE });
+    line._groupKey = key;
+    line.on('click', () => onStreetClick(key));
+    line.on('mouseover', () => hoverGroup(key, true, line));
+    line.on('mouseout', () => hoverGroup(key, false, line));
+    line.addTo(streetLayerGroup);
+    groups[key].layers.push(line);
+    bounds.extend(line.getBounds());
+  });
+
+  // seed records for streets already saved but keep only what exists is fine; just restyle
+  restyleAll();
+  refreshChips();
+  refreshHoodline();
+
+  const n = Object.keys(groups).length;
+  if (!n) {
+    setStatus('No streets found in that area. If it was a point result, try a broader search.', true);
+    return;
+  }
+  if (bounds.isValid()) map.fitBounds(bounds.pad(0.03));
+  setStatus(`${n} streets loaded. Pick a material and start clicking.`);
+}
+
+/* ---------- interaction ---------- */
+function onStreetClick(key) {
+  if (!hoodKey) return;
+  const g = groups[key];
+  const rec = streetRec(key, g.name);
+
+  if (activeTag === 'eraser') {
+    rec.tags = [];
+  } else {
+    const i = rec.tags.findIndex(t => t.id === activeTag);
+    if (i >= 0) rec.tags.splice(i, 1);
+    else rec.tags.push({ id: activeTag, on: new Date().toISOString() });
+  }
+  save();
+  restyleGroup(key);
+  refreshChips();
+}
+
+function groupStyle(key) {
+  const h = hood();
+  const rec = h && h.streets[key];
+  const tags = rec ? rec.tags.filter(t => tagById(t.id)) : [];
+  let style;
+  if (tags.length) {
+    const latest = tags[tags.length - 1];
+    style = { color: tagById(latest.id).color, weight: 5, opacity: 0.95 };
+  } else {
+    style = { ...UNTAGGED_STYLE };
+  }
+  if (spotlightTag) {
+    const hasIt = tags.some(t => t.id === spotlightTag);
+    if (!hasIt) { style.opacity = 0.12; }
+    else { style.color = tagById(spotlightTag).color; }
+  }
+  return style;
+}
+function restyleGroup(key) {
+  const s = groupStyle(key);
+  groups[key].layers.forEach(l => l.setStyle(s));
+}
+function restyleAll() { Object.keys(groups).forEach(restyleGroup); }
+
+function hoverGroup(key, on, line) {
+  const g = groups[key];
+  if (on) {
+    const s = groupStyle(key);
+    g.layers.forEach(l => l.setStyle({ weight: s.weight + 3, opacity: Math.max(s.opacity, 0.6) }));
+    line.bindTooltip(tooltipHtml(key), { sticky: true, className: 'street-tip', direction: 'top' }).openTooltip();
+  } else {
+    restyleGroup(key);
+    line.unbindTooltip();
+  }
+}
+
+function tooltipHtml(key) {
+  const g = groups[key];
+  const h = hood();
+  const rec = h && h.streets[key];
+  const tags = rec ? rec.tags.filter(t => tagById(t.id)) : [];
+  let rows;
+  if (tags.length) {
+    rows = tags.map(t => {
+      const def = tagById(t.id);
+      return `<div class="tt-tag"><span class="dot" style="background:${def.color}"></span>${esc(def.label)}<span class="dt">${fmtDate(t.on)}</span></div>`;
+    }).join('');
+  } else {
+    rows = '<div class="tt-none">Nothing yet</div>';
+  }
+  return `<div class="tt-name">${esc(g.name)}</div>${rows}`;
+}
+
+/* ---------- material chips ---------- */
+function refreshChips() {
+  const box = $('chips');
+  box.innerHTML = '';
+  const h = hoodKey ? hood() : null;
+
+  DB.tags.forEach(t => {
+    let count = 0;
+    if (h) for (const k in h.streets) {
+      if (groups[k] && h.streets[k].tags.some(x => x.id === t.id)) count++;
+    }
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (activeTag === t.id ? ' active' : '');
+    chip.setAttribute('role', 'button');
+    chip.tabIndex = 0;
+    chip.innerHTML =
+      `<input type="color" value="${t.color}" aria-label="Color for ${esc(t.label)}">` +
+      `<span class="blade" style="background:${t.color}">${esc(t.label)}</span>` +
+      `<span class="count" title="Streets with this material — click to spotlight">${count}${spotlightTag === t.id ? ' ◉' : ''}</span>` +
+      `<button class="del" aria-label="Delete ${esc(t.label)}">×</button>`;
+
+    const pick = () => { activeTag = t.id; refreshChips(); };
+    chip.addEventListener('click', pick);
+    chip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+
+    chip.querySelector('input[type=color]').addEventListener('click', e => e.stopPropagation());
+    chip.querySelector('input[type=color]').addEventListener('input', e => {
+      t.color = e.target.value; save();
+      chip.querySelector('.blade').style.background = t.color;
+      restyleAll();
+    });
+    chip.querySelector('.count').addEventListener('click', e => {
+      e.stopPropagation();
+      spotlightTag = (spotlightTag === t.id) ? null : t.id;
+      restyleAll(); refreshChips();
+    });
+    chip.querySelector('.del').addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm(`Delete "${t.label}"? It will be removed from every street, in every neighborhood.`)) return;
+      DB.tags = DB.tags.filter(x => x.id !== t.id);
+      for (const hk in DB.hoods) for (const sk in DB.hoods[hk].streets)
+        DB.hoods[hk].streets[sk].tags = DB.hoods[hk].streets[sk].tags.filter(x => x.id !== t.id);
+      if (activeTag === t.id) activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
+      if (spotlightTag === t.id) spotlightTag = null;
+      save(); restyleAll(); refreshChips();
+    });
+    box.appendChild(chip);
+  });
+
+  // eraser
+  const er = document.createElement('div');
+  er.className = 'chip eraser' + (activeTag === 'eraser' ? ' active' : '');
+  er.setAttribute('role', 'button');
+  er.tabIndex = 0;
+  er.innerHTML = `<span class="blade">Eraser — clear street</span>`;
+  const pickEr = () => { activeTag = 'eraser'; refreshChips(); };
+  er.addEventListener('click', pickEr);
+  er.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickEr(); } });
+  box.appendChild(er);
+}
+
+$('addTag').addEventListener('click', () => {
+  const label = $('newLabel').value.trim();
+  if (!label) return;
+  DB.tags.push({ id: 't-' + Date.now().toString(36), label, color: $('newColor').value });
+  $('newLabel').value = '';
+  save(); refreshChips();
+});
+$('newLabel').addEventListener('keydown', e => { if (e.key === 'Enter') $('addTag').click(); });
+
+/* ---------- data section ---------- */
+function refreshHoodline() {
+  const el = $('hoodline');
+  if (!hoodKey) { el.style.display = 'none'; return; }
+  const h = hood();
+  const total = Object.keys(groups).length;
+  let tagged = 0;
+  for (const k in groups) if (h.streets[k] && h.streets[k].tags.length) tagged++;
+  el.innerHTML = `<b>${esc(h.name)}</b><br>${tagged} / ${total} streets covered`;
+  el.style.display = 'block';
+}
+
+$('exportCsv').addEventListener('click', () => {
+  if (!hoodKey) { setStatus('Load a neighborhood first.', true); return; }
+  const h = hood();
+  const lines = ['Street,Material,Date tagged'];
+  const keys = Object.keys(groups).sort((a, b) => groups[a].name.localeCompare(groups[b].name));
+  keys.forEach(k => {
+    const rec = h.streets[k];
+    const tags = rec ? rec.tags.filter(t => tagById(t.id)) : [];
+    const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+    if (!tags.length) lines.push(`${q(groups[k].name)},,`);
+    else tags.forEach(t => lines.push(`${q(groups[k].name)},${q(tagById(t.id).label)},${q(fmtDate(t.on))}`));
+  });
+  download(h.name.replace(/\W+/g, '-').toLowerCase() + '-coverage.csv', lines.join('\n'), 'text/csv');
+});
+
+$('exportJson').addEventListener('click', () => {
+  download('street-tagger-backup.json', JSON.stringify(DB, null, 2), 'application/json');
+});
+
+$('importJson').addEventListener('click', () => $('filepick').click());
+$('filepick').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const incoming = JSON.parse(await f.text());
+    // merge tags by id
+    (incoming.tags || []).forEach(t => { if (!tagById(t.id)) DB.tags.push(t); });
+    // merge hoods / streets / tag entries
+    for (const hk in (incoming.hoods || {})) {
+      if (!DB.hoods[hk]) { DB.hoods[hk] = incoming.hoods[hk]; continue; }
+      const mine = DB.hoods[hk].streets, theirs = incoming.hoods[hk].streets || {};
+      for (const sk in theirs) {
+        if (!mine[sk]) { mine[sk] = theirs[sk]; continue; }
+        theirs[sk].tags.forEach(t => {
+          if (!mine[sk].tags.some(x => x.id === t.id)) mine[sk].tags.push(t);
+        });
+      }
+    }
+    save(); restyleAll(); refreshChips(); refreshHoodline();
+    setStatus('Import merged. Counts updated.');
+  } catch (err) {
+    setStatus('Import failed: not a valid backup file.', true);
+  }
+  e.target.value = '';
+});
+
+$('clearHood').addEventListener('click', () => {
+  if (!hoodKey) return;
+  if (!confirm('Clear all tagging for ' + hood().name + '? This cannot be undone.')) return;
+  hood().streets = {};
+  save(); restyleAll(); refreshChips(); refreshHoodline();
+});
+
+function download(filename, text, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ---------- boot ---------- */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+refreshChips();
+if (DB.lastHood) {
+  $('q').value = DB.lastHood.name;
+  loadStreets(DB.lastHood);
+} else {
+  setStatus('Search for a neighborhood to begin.');
+}
+</script>
+</body>
+</html>
