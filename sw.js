@@ -2,7 +2,7 @@
    keeps the interface loading even on a spotty connection.
    Live map tiles and street data still need internet. */
 
-const CACHE = 'street-tagger-v2';
+const CACHE = 'street-tagger-v4';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {

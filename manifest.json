@@ -1,13 +1,13 @@
 {
-  "name": "Street Tagger",
-  "short_name": "Street Tagger",
-  "description": "Track which streets got which marketing materials.",
+  "name": "Block by Block — Green Light Wireless",
+  "short_name": "Block by Block",
+  "description": "The Green Light Wireless street-team map. Every tactic, every block of our network.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#20261f",
-  "theme_color": "#20261f",
+  "background_color": "#ffffff",
+  "theme_color": "#009c41",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

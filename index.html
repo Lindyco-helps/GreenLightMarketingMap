@@ -3,253 +3,277 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Street Tagger — Marketing Coverage Map</title>
+<title>Block by Block — Green Light Wireless</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#20261f">
+<meta name="theme-color" content="#009c41">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Street Tagger">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Block by Block">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;900&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --asphalt: #20261f;
-    --asphalt-2: #2a322a;
-    --line: #3a423a;
-    --paper: #f4f6f3;
-    --ink: #1a1f1a;
-    --muted: #97a498;
-    --signal: #2fbf71;
-    --danger: #e5533d;
+    /* Green Light Wireless brand palette */
+    --glw-green: #009c41;
+    --glw-yellow: #feea00;
+    --glw-blue: #39abe2;
+    --glw-lime: #d1d700;
+    --glw-charcoal: #3c3c3b;
+    --glw-gray: #dadad9;
+    --paper: #ffffff;
+    --wash: #f5f6f4;
+    --ink: #3c3c3b;
+    --muted: #7c807b;
+    --line: #e2e4e0;
+    --danger: #cc4b33;
     --radius: 8px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
-    font-family: 'Barlow', system-ui, sans-serif;
-    color: var(--paper);
+    font-family: 'Source Sans 3', 'Source Sans Pro', system-ui, sans-serif;
+    color: var(--ink);
     display: flex;
     overflow: hidden;
+    background: var(--wash);
   }
 
   /* ---------- Sidebar ---------- */
   #sidebar {
-    width: 330px;
-    min-width: 330px;
-    background: var(--asphalt);
+    width: 336px;
+    min-width: 336px;
+    background: var(--paper);
+    border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     z-index: 1001;
-    box-shadow: 4px 0 18px rgba(0,0,0,.25);
   }
   #sidebar header {
     padding: 18px 18px 14px;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 4px solid var(--glw-green);
   }
   #sidebar h1 {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 26px;
-    letter-spacing: .06em;
-    text-transform: uppercase;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: .01em;
     line-height: 1;
+    color: var(--glw-charcoal);
   }
-  #sidebar h1 .tick { color: var(--signal); }
+  #sidebar h1 .go { color: var(--glw-green); }
+  #sidebar header .brand {
+    margin-top: 3px;
+    font-weight: 700;
+    font-size: 11.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--glw-green);
+  }
   #sidebar header p {
-    margin-top: 5px;
-    font-size: 12.5px;
+    margin-top: 6px;
+    font-size: 13px;
     color: var(--muted);
+    line-height: 1.4;
   }
   section { padding: 14px 18px; border-bottom: 1px solid var(--line); }
   .sec-label {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 600;
-    font-size: 13px;
+    font-weight: 900;
+    font-size: 12px;
     letter-spacing: .14em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--glw-charcoal);
     margin-bottom: 9px;
   }
 
-  /* search */
-  .search-row { display: flex; gap: 6px; }
-  input[type="text"] {
-    flex: 1;
-    background: var(--asphalt-2);
+  input[type="text"], textarea, select {
+    background: var(--wash);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    color: var(--paper);
+    color: var(--ink);
     padding: 8px 10px;
     font: inherit;
     font-size: 14px;
-    min-width: 0;
   }
-  input[type="text"]::placeholder { color: #6d7a6e; }
-  input[type="text"]:focus { outline: 2px solid var(--signal); outline-offset: 1px; border-color: transparent; }
+  input[type="text"] { flex: 1; min-width: 0; }
+  input[type="text"]:focus, textarea:focus, select:focus { outline: 2px solid var(--glw-green); outline-offset: 1px; border-color: transparent; }
+  ::placeholder { color: #a4a8a3; }
   textarea {
     width: 100%;
-    background: var(--asphalt-2);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    color: var(--paper);
-    padding: 8px 10px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    min-height: 86px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px;
+    min-height: 76px;
     resize: vertical;
     margin-bottom: 6px;
   }
-  textarea::placeholder { color: #6d7a6e; font-family: 'Barlow', sans-serif; font-size: 13px; }
-  textarea:focus { outline: 2px solid var(--signal); outline-offset: 1px; border-color: transparent; }
-  #teamCode { width: 100%; margin-bottom: 6px; }
   button {
     font: inherit;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 13.5px;
     border: none;
     border-radius: var(--radius);
     padding: 8px 12px;
     cursor: pointer;
-    background: var(--signal);
-    color: #10241a;
+    background: var(--glw-green);
+    color: #fff;
   }
-  button:hover { filter: brightness(1.08); }
-  button:focus-visible { outline: 2px solid var(--paper); outline-offset: 1px; }
+  button:hover { filter: brightness(1.07); }
+  button:focus-visible { outline: 2px solid var(--glw-charcoal); outline-offset: 1px; }
   button.ghost {
-    background: var(--asphalt-2);
-    color: var(--paper);
-    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--glw-charcoal);
+    border: 1px solid #c9ccc8;
+    font-weight: 600;
   }
+  button.ghost:hover { background: var(--wash); filter: none; }
+
+  .search-row { display: flex; gap: 6px; }
   #results { margin-top: 8px; display: none; }
   #results .hit {
-    width: 100%;
+    display: block; width: 100%;
     text-align: left;
-    background: var(--asphalt-2);
+    background: var(--wash);
     border: 1px solid var(--line);
-    color: var(--paper);
+    color: var(--ink);
     font-weight: 400;
     margin-bottom: 5px;
     padding: 8px 10px;
     font-size: 13px;
     line-height: 1.35;
   }
-  #results .hit:hover { border-color: var(--signal); }
+  #results .hit:hover { border-color: var(--glw-green); background: #eef7f1; }
   .opt-row { margin-top: 9px; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
-  .opt-row input { accent-color: var(--signal); }
+  .opt-row input { accent-color: var(--glw-green); }
 
-  #status {
-    font-family: 'IBM Plex Mono', monospace;
+  .status {
+    font-family: 'Source Code Pro', monospace;
     font-size: 11.5px;
     color: var(--muted);
-    margin-top: 9px;
+    margin-top: 8px;
     min-height: 15px;
     white-space: pre-wrap;
+    line-height: 1.5;
   }
-  #status.err { color: var(--danger); }
+  .status.err { color: var(--danger); }
 
-  /* material chips — the "sign blade" list */
+  /* areas list */
+  #areas { margin-top: 4px; }
+  .area-row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 9px;
+    background: var(--wash);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 6px;
+  }
+  .area-row .a-name { flex: 1; min-width: 0; font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .area-row .a-count { font-family: 'Source Code Pro', monospace; font-size: 11px; color: var(--muted); }
+  .area-row button { padding: 3px 8px; font-size: 12px; }
+
+  /* tactic chips */
+  .scope-row { display: flex; gap: 0; margin-bottom: 10px; border: 1px solid #c9ccc8; border-radius: var(--radius); overflow: hidden; }
+  .scope-row button { flex: 1; border-radius: 0; background: var(--paper); color: var(--glw-charcoal); font-weight: 600; font-size: 12.5px; padding: 7px 4px; }
+  .scope-row button.on { background: var(--glw-green); color: #fff; }
   .chip {
     display: flex;
     align-items: center;
     gap: 9px;
     width: 100%;
-    background: var(--asphalt-2);
-    border: 1px solid var(--line);
+    background: var(--paper);
+    border: 1px solid #c9ccc8;
     border-radius: var(--radius);
     padding: 7px 9px;
     margin-bottom: 6px;
     cursor: pointer;
     user-select: none;
   }
-  .chip.active { border-color: var(--signal); box-shadow: inset 0 0 0 1px var(--signal); }
+  .chip.active { border-color: var(--glw-green); box-shadow: inset 0 0 0 2px var(--glw-green); }
   .chip .blade {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: .09em;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: .06em;
     text-transform: uppercase;
     color: #fff;
-    padding: 3px 10px;
+    padding: 4px 10px;
     border-radius: 4px;
-    box-shadow: 0 1px 0 rgba(0,0,0,.35);
-    text-shadow: 0 1px 1px rgba(0,0,0,.35);
     flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .chip .blade.on-light { color: var(--glw-charcoal); }
   .chip .count {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Source Code Pro', monospace;
     font-size: 12px;
     color: var(--muted);
-    min-width: 26px;
+    min-width: 30px;
     text-align: right;
+    cursor: pointer;
   }
-  .chip input[type="color"] {
-    width: 20px; height: 20px;
-    border: none; padding: 0; background: none; cursor: pointer;
-  }
-  .chip .del {
-    background: none; border: none; color: var(--muted);
-    font-size: 15px; padding: 0 3px; line-height: 1;
-  }
+  .chip input[type="color"] { width: 20px; height: 20px; border: none; padding: 0; background: none; cursor: pointer; }
+  .chip .del { background: none; border: none; color: var(--muted); font-size: 15px; padding: 0 3px; line-height: 1; }
   .chip .del:hover { color: var(--danger); }
-  .chip.eraser .blade { background: repeating-linear-gradient(45deg, #556055 0 6px, #454f45 6px 12px); }
+  .chip.eraser .blade { background: repeating-linear-gradient(45deg, #b9beb9 0 6px, #a2a8a2 6px 12px); }
   .add-row { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
-  .add-row input[type="color"] { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: var(--asphalt-2); cursor: pointer; }
-  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
-  kbd {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
-    border: 1px solid var(--line); border-bottom-width: 2px;
-    border-radius: 4px; padding: 0 4px; background: var(--asphalt-2);
-  }
+  .add-row input[type="color"] { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: var(--wash); cursor: pointer; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
 
-  /* progress + data */
-  #hoodline {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px; color: var(--paper);
-    margin-bottom: 8px; display: none; line-height: 1.5;
-  }
-  #hoodline b { color: var(--signal); font-weight: 500; }
+  /* points */
+  .pt-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .pt-row select { flex: 1; }
+  .pt-legend { display: flex; gap: 14px; margin-top: 8px; font-size: 13px; }
+  .pt-legend label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .pt-legend .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid var(--glw-charcoal); }
+  .pt-legend input { accent-color: var(--glw-green); }
+  .pt-legend .n { font-family: 'Source Code Pro', monospace; font-size: 11px; color: var(--muted); }
+
   .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .btn-grid button { font-size: 12.5px; padding: 7px 6px; }
-  footer { padding: 12px 18px; font-size: 11px; color: #66735f; line-height: 1.5; margin-top: auto; }
+  footer { padding: 12px 18px; font-size: 11px; color: #9aa099; line-height: 1.5; margin-top: auto; }
   footer a { color: var(--muted); }
 
   /* ---------- Map ---------- */
-  #map { flex: 1; height: 100%; background: #dfe6df; }
+  #map { flex: 1; height: 100%; background: #eef0ed; }
+  #paintToggle {
+    position: fixed;
+    bottom: 22px;
+    right: 14px;
+    z-index: 1100;
+    background: var(--paper);
+    color: var(--glw-charcoal);
+    border: 1px solid #c9ccc8;
+    box-shadow: 0 3px 12px rgba(60,60,59,.25);
+    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 999px;
+  }
+  #paintToggle.on { background: var(--glw-green); color: #fff; border-color: transparent; }
+  body.painting .leaflet-container, body.painting .leaflet-interactive { cursor: crosshair !important; }
+
   .leaflet-tooltip.street-tip {
-    background: var(--asphalt); color: var(--paper);
+    background: var(--paper); color: var(--ink);
     border: 1px solid var(--line); border-radius: 6px;
-    box-shadow: 0 3px 10px rgba(0,0,0,.3);
-    padding: 7px 10px; font-family: 'Barlow', sans-serif;
+    box-shadow: 0 3px 10px rgba(60,60,59,.2);
+    padding: 7px 10px;
   }
-  .street-tip .tt-name {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 600;
-    font-size: 15px; letter-spacing: .07em; text-transform: uppercase;
-  }
-  .street-tip .tt-tag {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; margin-top: 3px;
-  }
+  .street-tip .tt-name { font-weight: 900; font-size: 13.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .street-tip .tt-sub { font-size: 11px; color: var(--muted); }
+  .street-tip .tt-tag { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 3px; }
   .street-tip .tt-tag .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
-  .street-tip .tt-tag .dt { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted); margin-left: auto; padding-left: 10px; }
+  .street-tip .tt-tag .dt { font-family: 'Source Code Pro', monospace; font-size: 10.5px; color: var(--muted); margin-left: auto; padding-left: 10px; }
   .street-tip .tt-none { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .pt-pop b { text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+  .pt-pop button { margin-top: 6px; font-size: 12px; padding: 4px 8px; }
 
   @media (max-width: 760px) {
     body { flex-direction: column; }
-    #sidebar { width: 100%; min-width: 0; max-height: 46vh; box-shadow: 0 4px 18px rgba(0,0,0,.25); }
+    #sidebar { width: 100%; min-width: 0; max-height: 46vh; border-right: none; border-bottom: 1px solid var(--line); }
     #map { height: 54vh; }
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .chip, button { transition: border-color .12s, filter .12s, box-shadow .12s; }
   }
 </style>
 </head>
@@ -257,43 +281,73 @@
 
 <aside id="sidebar">
   <header>
-    <h1>Street Tagger <span class="tick">▸</span></h1>
-    <p>Track which streets got which marketing materials.</p>
+    <h1>Block by Block <span class="go">▸</span></h1>
+    <div class="brand">Green Light Wireless</div>
+    <p>Our street-team map. Every tactic, every block, everywhere our network says hello.</p>
   </header>
 
   <section>
-    <div class="sec-label">Neighborhood</div>
+    <div class="sec-label">Neighborhoods</div>
     <div class="search-row">
-      <input type="text" id="q" placeholder="e.g. Bloomfield, Pittsburgh" aria-label="Search for a neighborhood">
+      <input type="text" id="q" placeholder="Add an area — e.g. Bloomfield, Pittsburgh" aria-label="Search for a neighborhood">
       <button id="go">Search</button>
     </div>
     <div id="results"></div>
+    <div id="areas"></div>
+    <div class="btn-grid" id="areaBtns" hidden>
+      <button class="ghost" id="viewAll">View everything</button>
+      <button class="ghost" id="reloadAreas">Reload areas</button>
+    </div>
     <label class="opt-row"><input type="checkbox" id="alleys"> Include alleys &amp; service roads</label>
-    <div id="status"></div>
+    <div class="status" id="status"></div>
   </section>
 
   <section>
-    <div class="sec-label">Materials</div>
+    <div class="sec-label">Tactics</div>
+    <div class="scope-row" role="group" aria-label="Selection scope">
+      <button id="scopeBlock" class="on">Select blocks</button>
+      <button id="scopeStreet">Select whole streets</button>
+    </div>
     <div id="chips"></div>
     <div class="add-row">
-      <input type="color" id="newColor" value="#8e5cd9" aria-label="New material color">
-      <input type="text" id="newLabel" placeholder="Add a material…" aria-label="New material name">
+      <input type="color" id="newColor" value="#8e5cd9" aria-label="New tactic color">
+      <input type="text" id="newLabel" placeholder="Add a tactic…" aria-label="New tactic name">
       <button id="addTag">Add</button>
     </div>
-    <p class="hint">Pick a material, then click streets on the map to mark them. Click again to unmark. Pick <b>Eraser</b> to clear a street. Click a material's count to spotlight only those streets.</p>
+    <p class="hint">Pick a tactic, then click blocks on the map — click again to remove. A block can hold several tactics; extra ones show as colored dashes. Hit <b>🖌 Paint mode</b> (bottom-right of the map) to drag across many blocks at once — one finger paints, two fingers move the map. Click a tactic's count to spotlight it.</p>
+  </section>
+
+  <section>
+    <div class="sec-label">Address points</div>
+    <div class="pt-row">
+      <select id="ptType" aria-label="Point type">
+        <option value="query">Query</option>
+        <option value="coa">Change of Address</option>
+      </select>
+      <button class="ghost" id="ptUpload">Upload list</button>
+    </div>
+    <textarea id="ptPaste" placeholder="…or paste addresses here, one per line:&#10;411 Penn Ave, Pittsburgh, PA&#10;5000 Liberty Ave, Pittsburgh, PA, Change of Address"></textarea>
+    <div class="btn-grid">
+      <button id="ptAdd">Add points</button>
+      <button class="ghost" id="ptClear">Clear all points</button>
+    </div>
+    <div class="pt-legend">
+      <label><input type="checkbox" id="showQuery" checked><span class="dot" style="background:var(--glw-yellow)"></span>Query <span class="n" id="nQuery">0</span></label>
+      <label><input type="checkbox" id="showCoa" checked><span class="dot" style="background:var(--glw-charcoal); border-color:var(--glw-yellow)"></span>Change of Addr. <span class="n" id="nCoa">0</span></label>
+    </div>
+    <div class="status" id="ptStatus"></div>
+    <input type="file" id="ptFile" accept=".csv,.txt" hidden>
   </section>
 
   <section>
     <div class="sec-label">Data</div>
-    <div id="hoodline"></div>
     <div class="btn-grid">
       <button class="ghost" id="exportCsv">Export CSV</button>
       <button class="ghost" id="exportJson">Backup JSON</button>
       <button class="ghost" id="importJson">Import JSON</button>
-      <button class="ghost" id="clearHood">Clear this map</button>
     </div>
     <input type="file" id="filepick" accept=".json" hidden>
-    <p class="hint">Everything saves automatically in this browser. Use Backup / Import to move data between computers or combine a teammate's tagging with yours.</p>
+    <p class="hint">Everything saves automatically. Backup / Import moves data between devices or merges a teammate's work with yours.</p>
   </section>
 
   <section>
@@ -301,7 +355,7 @@
     <div class="hint" id="syncStatus" style="margin-top:0; margin-bottom:8px;">Off — data stays on this device.</div>
     <div id="syncSetup" hidden>
       <textarea id="syncConfig" placeholder="Paste your Firebase config snippet here — or a setup code from a teammate" aria-label="Sync configuration"></textarea>
-      <input type="text" id="teamCode" placeholder="Team code (same on every device)" aria-label="Team code">
+      <input type="text" id="teamCode" placeholder="Team code (same on every device)" aria-label="Team code" style="width:100%; margin-bottom:6px;">
       <div class="btn-grid">
         <button id="syncConnect">Connect</button>
         <button class="ghost" id="syncCancel">Cancel</button>
@@ -320,89 +374,111 @@
 </aside>
 
 <div id="map"></div>
+<button id="paintToggle">🖌 Paint mode</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* =========================================================
-   Street Tagger
-   Self-contained. Data lives in localStorage under one key.
+   Block by Block — Green Light Wireless street-team tracker
    ========================================================= */
 
-const LS_KEY = 'street-tagger-v1';
+const LS_KEY = 'street-tagger-v1'; // kept from v1 so existing data migrates
 const OVERPASS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter'
 ];
-const UNTAGGED_STYLE = { color: '#93a293', weight: 4, opacity: 0.8 };
+const UNTAGGED = { color: '#b3bab2', weight: 4, opacity: 0.8 };
+const DASH = 14;
+const PT_STYLE = {
+  query: { fillColor: '#feea00', color: '#3c3c3b' },
+  coa:   { fillColor: '#3c3c3b', color: '#feea00' }
+};
+const PT_LABEL = { query: 'Query', coa: 'Change of Address' };
 
 /* ---------- persistent state ---------- */
-let DB = load();
-function defaultDB() {
-  return {
-    version: 1,
-    tags: [
-      { id: 't-door', label: 'Door hanger', color: '#2fbf71' },
-      { id: 't-post', label: 'Postcard',    color: '#3b82f6' },
-      { id: 't-fly',  label: 'Flyer',       color: '#f59e0b' }
-    ],
-    hoods: {},     // hoodKey -> { name, streets: { groupKey: { name, tags:[{id, on}] } } }
-    lastHood: null // { key, osmType, osmId, name, bbox }
-  };
+function defaultTags() {
+  return [
+    { id: 't-pc1',  label: 'Postcard 1',  color: '#009c41' },
+    { id: 't-pc2',  label: 'Postcard 2',  color: '#39abe2' },
+    { id: 't-door', label: 'Door hanger', color: '#d1d700' },
+    { id: 't-bill', label: 'Billboard',   color: '#3c3c3b' }
+  ];
 }
+function defaultDB() {
+  return { version: 2, tags: defaultTags(), hoods: {}, points: {}, loadedHoods: [] };
+}
+let DB = load();
+
 function load() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) { console.warn('Could not read saved data', e); }
-  return defaultDB();
+  let db;
+  try { db = JSON.parse(localStorage.getItem(LS_KEY)); } catch (e) { db = null; }
+  if (!db) return defaultDB();
+  if (db.version === 2) return db;
+
+  /* ---- migrate v1 → v2 ---- */
+  db.version = 2;
+  db.points = db.points || {};
+  db.loadedHoods = db.lastHood ? [db.lastHood] : [];
+  delete db.lastHood;
+  const tags = db.tags || [];
+  const usedIds = new Set();
+  for (const hk in (db.hoods || {}))
+    for (const sk in (db.hoods[hk].streets || {}))
+      (db.hoods[hk].streets[sk].tags || []).forEach(t => usedIds.add(t.id));
+  // rename old defaults, drop unused old defaults, ensure new defaults present
+  tags.forEach(t => { if (t.id === 't-post') t.label = 'Postcard 1'; });
+  db.tags = tags.filter(t => !(['t-post', 't-fly', 't-door'].includes(t.id) && !usedIds.has(t.id)));
+  defaultTags().forEach(d => {
+    if (!db.tags.some(t => t.id === d.id || t.label.toLowerCase() === d.label.toLowerCase()))
+      db.tags.push(d);
+  });
+  for (const hk in (db.hoods || {})) db.hoods[hk].blocks = db.hoods[hk].blocks || {};
+  return db;
 }
 function save() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
-  catch (e) { setStatus('Warning: could not save (storage full or blocked).', true); }
+  catch (e) { setStatus('Warning: could not save locally (storage full or blocked).', true); }
 }
 
-/* ---------- runtime state ---------- */
-let map, streetLayerGroup;
-let groups = {};            // groupKey -> { name, layers: [] }
-let hoodKey = null;         // current neighborhood key
-let activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
-let spotlightTag = null;    // tag id currently spotlighted via legend, or null
+/* ---------- runtime ---------- */
+const RT = { hoods: {} }; // hoodKey -> { lg, blocks:{bk:{name, latlngs, base, overlays:[], hit}}, byName:{}, bounds }
+let activeTag = null;
+let spotlightTag = null;
+let scope = 'block'; // 'block' | 'street'
+let paintOn = false, stroke = null;
 
-/* ---------- map setup ---------- */
-map = L.map('map', { zoomControl: true }).setView([40.4406, -79.9959], 12);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  maxZoom: 20,
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-}).addTo(map);
-streetLayerGroup = L.layerGroup().addTo(map);
-
-/* ---------- helpers ---------- */
 const $ = id => document.getElementById(id);
-function setStatus(msg, isErr) {
-  const el = $('status');
-  el.textContent = msg || '';
-  el.className = isErr ? 'err' : '';
-}
-function hood() {
-  if (!hoodKey) return null;
-  if (!DB.hoods[hoodKey]) DB.hoods[hoodKey] = { name: '', streets: {} };
-  return DB.hoods[hoodKey];
-}
-function streetRec(key, name) {
-  const h = hood();
-  if (!h.streets[key]) h.streets[key] = { name, tags: [] };
-  return h.streets[key];
-}
+function setStatus(msg, isErr) { const el = $('status'); el.textContent = msg || ''; el.className = 'status' + (isErr ? ' err' : ''); }
+function setPtStatus(msg, isErr) { const el = $('ptStatus'); el.textContent = msg || ''; el.className = 'status' + (isErr ? ' err' : ''); }
 function tagById(id) { return DB.tags.find(t => t.id === id); }
-function fmtDate(iso) {
-  const d = new Date(iso);
-  return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' });
-}
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+function fmtDate(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' }); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+// readable text color for a chip background
+function onLight(hex) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
 }
 
-/* ---------- neighborhood search (Nominatim) ---------- */
+function hoodData(hk) {
+  if (!DB.hoods[hk]) DB.hoods[hk] = { name: '', blocks: {} };
+  if (!DB.hoods[hk].blocks) DB.hoods[hk].blocks = {};
+  return DB.hoods[hk];
+}
+function blockRec(hk, bk) {
+  const h = hoodData(hk);
+  if (!h.blocks[bk]) h.blocks[bk] = { name: (RT.hoods[hk] && RT.hoods[hk].blocks[bk]) ? RT.hoods[hk].blocks[bk].name : '', tags: [] };
+  return h.blocks[bk];
+}
+
+/* ---------- map ---------- */
+const map = L.map('map').setView([40.4406, -79.9959], 12);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+}).addTo(map);
+const pointsLG = L.layerGroup().addTo(map);
+const pointMarkers = {}; // id -> marker
+
+/* ---------- neighborhood search ---------- */
 $('go').addEventListener('click', doSearch);
 $('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
@@ -412,62 +488,50 @@ async function doSearch() {
   setStatus('Searching…');
   $('results').style.display = 'none';
   try {
-    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' + encodeURIComponent(q);
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' + encodeURIComponent(q));
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const hits = await res.json();
     if (!hits.length) { setStatus('No matches. Try adding the city, e.g. "Bloomfield, Pittsburgh".', true); return; }
-    renderResults(hits);
+    const box = $('results');
+    box.innerHTML = '';
+    hits.forEach(h => {
+      const b = document.createElement('button');
+      b.className = 'hit';
+      b.textContent = h.display_name;
+      b.addEventListener('click', () => {
+        box.style.display = 'none';
+        $('q').value = '';
+        addArea({ key: h.osm_type + '/' + h.osm_id, osmType: h.osm_type, osmId: h.osm_id,
+                  name: h.display_name.split(',')[0], display: h.display_name, bbox: h.boundingbox });
+      });
+      box.appendChild(b);
+    });
+    box.style.display = 'block';
     setStatus('');
   } catch (e) {
     setStatus('Search failed (' + e.message + '). Check your connection and try again.', true);
   }
 }
 
-function renderResults(hits) {
-  const box = $('results');
-  box.innerHTML = '';
-  hits.forEach(h => {
-    const b = document.createElement('button');
-    b.className = 'hit';
-    b.textContent = h.display_name;
-    b.addEventListener('click', () => {
-      box.style.display = 'none';
-      loadStreets({
-        osmType: h.osm_type, osmId: h.osm_id,
-        name: h.display_name.split(',')[0],
-        display: h.display_name,
-        bbox: h.boundingbox // [s, n, w, e]
-      });
-    });
-    box.appendChild(b);
-  });
-  box.style.display = 'block';
-}
-
-/* ---------- street loading (Overpass) ---------- */
+/* ---------- loading areas (Overpass) ---------- */
 function highwayRegex() {
   const base = 'residential|living_street|unclassified|tertiary|secondary|primary';
   return $('alleys').checked ? base + '|service' : base;
 }
 
-async function loadStreets(sel) {
-  hoodKey = sel.osmType + '/' + sel.osmId;
-  const h = hood();
-  h.name = sel.name;
-  DB.lastHood = { key: hoodKey, osmType: sel.osmType, osmId: sel.osmId, name: sel.name, bbox: sel.bbox, display: sel.display };
-  save();
-  pushHoodName(hoodKey, sel.name);
-
+async function addArea(sel, opts) {
+  opts = opts || {};
+  if (RT.hoods[sel.key]) { zoomArea(sel.key); return; }
   setStatus('Loading streets for ' + sel.name + '…');
-  let query;
+
   const hw = highwayRegex();
+  let query;
   if (sel.osmType === 'relation' || sel.osmType === 'way') {
     const areaId = (sel.osmType === 'relation' ? 3600000000 : 2400000000) + Number(sel.osmId);
     query = `[out:json][timeout:60];area(${areaId})->.a;way["highway"~"^(${hw})$"](area.a);out geom;`;
   } else {
-    let [s, n, w, e] = sel.bbox.map(Number);
-    // Point results come back with a near-zero box — pad to roughly a neighborhood.
+    let [s, n, w, e] = (sel.bbox || []).map(Number);
+    if (!(isFinite(s) && isFinite(w))) { setStatus('That result has no usable area — try a different search result.', true); return; }
     if (n - s < 0.008) { s -= 0.006; n += 0.006; }
     if (e - w < 0.008) { w -= 0.008; e += 0.008; }
     query = `[out:json][timeout:60];way["highway"~"^(${hw})$"](${s},${w},${n},${e});out geom;`;
@@ -483,133 +547,246 @@ async function loadStreets(sel) {
       break;
     } catch (e) { lastErr = e; }
   }
-  if (!data) {
-    setStatus('Could not load street data (' + (lastErr && lastErr.message) + '). Overpass may be busy — wait a minute and retry.', true);
-    return;
-  }
-  drawStreets(data.elements || [], sel);
+  if (!data) { setStatus('Could not load street data (' + (lastErr && lastErr.message) + '). Overpass may be busy — wait a minute and retry.', true); return; }
+
+  const ways = (data.elements || []).filter(w => w.geometry && w.geometry.length > 1);
+  if (!ways.length) { setStatus('No streets found in "' + sel.name + '".', true); return; }
+
+  buildHood(sel, ways);
+  hoodData(sel.key).name = sel.name;
+  if (!DB.loadedHoods.some(h => h.key === sel.key)) DB.loadedHoods.push(sel);
+  save();
+  pushHoodName(sel.key, sel.name);
+  migrateLegacyStreets(sel.key);
+  renderHood(sel.key);
+  refreshChips(); refreshAreas();
+  if (!opts.noZoom) zoomArea(sel.key);
+  setStatus(Object.keys(RT.hoods[sel.key].blocks).length + ' blocks loaded in ' + sel.name + '.');
 }
 
-function drawStreets(ways, sel) {
-  streetLayerGroup.clearLayers();
-  groups = {};
-  spotlightTag = null;
+/* Split each OSM way into blocks at intersections (nodes shared with other ways) */
+function buildHood(sel, ways) {
+  const hk = sel.key;
+  const rt = { lg: L.layerGroup().addTo(map), blocks: {}, byName: {}, bounds: L.latLngBounds([]) };
+  RT.hoods[hk] = rt;
 
-  const bounds = L.latLngBounds([]);
+  const useCount = {};
+  ways.forEach(w => (w.nodes || []).forEach(n => { useCount[n] = (useCount[n] || 0) + 1; }));
+
   ways.forEach(w => {
-    if (!w.geometry || w.geometry.length < 2) return;
-    const name = (w.tags && w.tags.name) || null;
-    const key = name ? 'n:' + name.toLowerCase() : 'w:' + w.id;
-    const label = name || 'Unnamed road';
-    if (!groups[key]) groups[key] = { name: label, layers: [] };
+    const name = (w.tags && w.tags.name) || 'Unnamed road';
+    const nameKey = name.toLowerCase();
+    const nodes = w.nodes || [];
+    const cuts = [0];
+    for (let i = 1; i < nodes.length - 1; i++) if (useCount[nodes[i]] > 1) cuts.push(i);
+    cuts.push(w.geometry.length - 1);
 
-    const latlngs = w.geometry.map(p => [p.lat, p.lon]);
-    const line = L.polyline(latlngs, { ...UNTAGGED_STYLE });
-    line._groupKey = key;
-    line.on('click', () => onStreetClick(key));
-    line.on('mouseover', () => hoverGroup(key, true, line));
-    line.on('mouseout', () => hoverGroup(key, false, line));
-    line.addTo(streetLayerGroup);
-    groups[key].layers.push(line);
-    bounds.extend(line.getBounds());
+    for (let c = 0; c < cuts.length - 1; c++) {
+      const a = cuts[c], b = cuts[c + 1];
+      if (b <= a) continue;
+      const latlngs = w.geometry.slice(a, b + 1).map(p => [p.lat, p.lon]);
+      const bk = 'b' + w.id + '_' + (nodes[a] !== undefined ? nodes[a] : a);
+      if (rt.blocks[bk]) continue;
+
+      const base = L.polyline(latlngs, { ...UNTAGGED, interactive: false });
+      const hit = L.polyline(latlngs, { color: '#000', opacity: 0.001, weight: 24, interactive: true });
+      hit.on('click', () => { if (!paintOn) onBlockClick(hk, bk); });
+      hit.on('mousedown', e => { if (paintOn && e.originalEvent.button === 0) { beginStroke(); paintBlock(hk, bk); } });
+      hit.on('mouseover', e => {
+        if (paintOn && stroke && e.originalEvent.buttons === 1) paintBlock(hk, bk);
+        hoverBlock(hk, bk, true, hit);
+      });
+      hit.on('mouseout', () => hoverBlock(hk, bk, false, hit));
+      base.addTo(rt.lg); hit.addTo(rt.lg);
+      if (hit._path) { hit._path._stHk = hk; hit._path._stBk = bk; }
+
+      rt.blocks[bk] = { name, latlngs, base, hit, overlays: [] };
+      (rt.byName[nameKey] = rt.byName[nameKey] || []).push(bk);
+      rt.bounds.extend(base.getBounds());
+    }
   });
-
-  // seed records for streets already saved but keep only what exists is fine; just restyle
-  restyleAll();
-  refreshChips();
-  refreshHoodline();
-
-  const n = Object.keys(groups).length;
-  if (!n) {
-    setStatus('No streets found in that area. If it was a point result, try a broader search.', true);
-    return;
-  }
-  if (bounds.isValid()) map.fitBounds(bounds.pad(0.03));
-  setStatus(`${n} streets loaded. Pick a material and start clicking.`);
 }
 
-/* ---------- interaction ---------- */
-function onStreetClick(key) {
-  if (!hoodKey) return;
-  const g = groups[key];
-  const rec = streetRec(key, g.name);
+/* v1 stored whole streets by name — copy those tags onto every matching block once */
+function migrateLegacyStreets(hk) {
+  const h = hoodData(hk);
+  if (!h.streets) return;
+  const rt = RT.hoods[hk];
+  let changed = false;
+  for (const sk in h.streets) {
+    const rec = h.streets[sk];
+    if (!rec || !rec.tags || !rec.tags.length) continue;
+    const nameKey = sk.startsWith('n:') ? sk.slice(2) : (rec.name || '').toLowerCase();
+    (rt.byName[nameKey] || []).forEach(bk => {
+      const brec = blockRec(hk, bk);
+      if (!brec.tags.length) { brec.tags = rec.tags.map(t => ({ ...t })); pushBlock(hk, bk); changed = true; }
+    });
+  }
+  delete h.streets;
+  if (changed || true) { save(); pushClearLegacy(hk); }
+}
 
-  if (activeTag === 'eraser') {
-    rec.tags = [];
+/* ---------- rendering ---------- */
+function blockTags(hk, bk) {
+  const h = DB.hoods[hk];
+  const rec = h && h.blocks && h.blocks[bk];
+  return rec ? rec.tags.filter(t => tagById(t.id)) : [];
+}
+function renderBlock(hk, bk) {
+  const rt = RT.hoods[hk];
+  if (!rt || !rt.blocks[bk]) return;
+  const blk = rt.blocks[bk];
+  blk.overlays.forEach(o => rt.lg.removeLayer(o));
+  blk.overlays = [];
+
+  const tags = blockTags(hk, bk);
+  const dim = spotlightTag && !tags.some(t => t.id === spotlightTag);
+  if (!tags.length) {
+    blk.base.setStyle({ ...UNTAGGED, opacity: dim ? 0.1 : UNTAGGED.opacity });
+    return;
+  }
+  const op = dim ? 0.1 : 0.95;
+  blk.base.setStyle({ color: tagById(tags[0].id).color, weight: 5, opacity: op, dashArray: null });
+  for (let i = 1; i < tags.length; i++) {
+    const o = L.polyline(blk.latlngs, {
+      color: tagById(tags[i].id).color, weight: 5, opacity: op,
+      dashArray: DASH + ' ' + (DASH * (tags.length - 1)),
+      dashOffset: String(DASH * i),
+      interactive: false
+    });
+    o.addTo(rt.lg);
+    blk.overlays.push(o);
+  }
+}
+function renderHood(hk) { for (const bk in (RT.hoods[hk] ? RT.hoods[hk].blocks : {})) renderBlock(hk, bk); }
+function renderAll() { for (const hk in RT.hoods) renderHood(hk); }
+
+function hoverBlock(hk, bk, on, hit) {
+  const rt = RT.hoods[hk];
+  const blk = rt.blocks[bk];
+  const keys = scopeKeys(hk, bk);
+  if (on) {
+    keys.forEach(k => {
+      const b = rt.blocks[k];
+      b.base.setStyle({ weight: (blockTags(hk, k).length ? 8 : 7) });
+      b.overlays.forEach(o => o.setStyle({ weight: 8 }));
+    });
+    hit.bindTooltip(tooltipHtml(hk, bk), { sticky: true, className: 'street-tip', direction: 'top' }).openTooltip();
   } else {
-    const i = rec.tags.findIndex(t => t.id === activeTag);
-    if (i >= 0) rec.tags.splice(i, 1);
-    else rec.tags.push({ id: activeTag, on: new Date().toISOString() });
+    keys.forEach(k => renderBlock(hk, k));
+    hit.unbindTooltip();
+  }
+}
+function tooltipHtml(hk, bk) {
+  const blk = RT.hoods[hk].blocks[bk];
+  const tags = blockTags(hk, bk);
+  const sub = scope === 'street' ? 'whole street' : 'block';
+  let rows = tags.length ? tags.map(t => {
+    const def = tagById(t.id);
+    return `<div class="tt-tag"><span class="dot" style="background:${def.color}"></span>${esc(def.label)}<span class="dt">${fmtDate(t.on)}</span></div>`;
+  }).join('') : '<div class="tt-none">Nothing yet</div>';
+  return `<div class="tt-name">${esc(blk.name)}</div><div class="tt-sub">${esc(hoodData(hk).name)} · ${sub}</div>${rows}`;
+}
+
+/* ---------- selection & painting ---------- */
+function scopeKeys(hk, bk) {
+  if (scope === 'block') return [bk];
+  const rt = RT.hoods[hk];
+  const nameKey = rt.blocks[bk].name.toLowerCase();
+  return nameKey === 'unnamed road' ? [bk] : (rt.byName[nameKey] || [bk]);
+}
+
+function onBlockClick(hk, bk) {
+  const keys = scopeKeys(hk, bk);
+  if (activeTag === 'eraser') {
+    keys.forEach(k => { const r = blockRec(hk, k); if (r.tags.length) { r.tags = []; pushBlock(hk, k); } });
+  } else if (activeTag) {
+    // additive-first: if any block in scope is missing the tactic, add everywhere missing; else remove everywhere
+    const missing = keys.filter(k => !blockRec(hk, k).tags.some(t => t.id === activeTag));
+    if (missing.length) {
+      const now = new Date().toISOString();
+      missing.forEach(k => { blockRec(hk, k).tags.push({ id: activeTag, on: now }); pushBlock(hk, k); });
+    } else {
+      keys.forEach(k => {
+        const r = blockRec(hk, k);
+        r.tags = r.tags.filter(t => t.id !== activeTag);
+        pushBlock(hk, k);
+      });
+    }
   }
   save();
-  pushStreet(hoodKey, key);
-  restyleGroup(key);
-  refreshChips();
+  keys.forEach(k => renderBlock(hk, k));
+  refreshChips(); refreshAreas();
 }
 
-function groupStyle(key) {
-  const h = hood();
-  const rec = h && h.streets[key];
-  const tags = rec ? rec.tags.filter(t => tagById(t.id)) : [];
-  let style;
-  if (tags.length) {
-    const latest = tags[tags.length - 1];
-    style = { color: tagById(latest.id).color, weight: 5, opacity: 0.95 };
-  } else {
-    style = { ...UNTAGGED_STYLE };
-  }
-  if (spotlightTag) {
-    const hasIt = tags.some(t => t.id === spotlightTag);
-    if (!hasIt) { style.opacity = 0.12; }
-    else { style.color = tagById(spotlightTag).color; }
-  }
-  return style;
+function setPaint(on) {
+  paintOn = on;
+  if (on) map.dragging.disable(); else map.dragging.enable();
+  document.body.classList.toggle('painting', on);
+  const b = $('paintToggle');
+  b.classList.toggle('on', on);
+  b.textContent = on ? '🖌 Painting — drag across streets' : '🖌 Paint mode';
+  endStroke();
 }
-function restyleGroup(key) {
-  const s = groupStyle(key);
-  groups[key].layers.forEach(l => l.setStyle(s));
-}
-function restyleAll() { Object.keys(groups).forEach(restyleGroup); }
+$('paintToggle').addEventListener('click', () => setPaint(!paintOn));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && paintOn) setPaint(false); });
 
-function hoverGroup(key, on, line) {
-  const g = groups[key];
-  if (on) {
-    const s = groupStyle(key);
-    g.layers.forEach(l => l.setStyle({ weight: s.weight + 3, opacity: Math.max(s.opacity, 0.6) }));
-    line.bindTooltip(tooltipHtml(key), { sticky: true, className: 'street-tip', direction: 'top' }).openTooltip();
-  } else {
-    restyleGroup(key);
-    line.unbindTooltip();
-  }
-}
+function beginStroke() { stroke = new Set(); }
+function endStroke() { if (stroke) { stroke = null; refreshChips(); refreshAreas(); } }
+document.addEventListener('mouseup', endStroke);
 
-function tooltipHtml(key) {
-  const g = groups[key];
-  const h = hood();
-  const rec = h && h.streets[key];
-  const tags = rec ? rec.tags.filter(t => tagById(t.id)) : [];
-  let rows;
-  if (tags.length) {
-    rows = tags.map(t => {
-      const def = tagById(t.id);
-      return `<div class="tt-tag"><span class="dot" style="background:${def.color}"></span>${esc(def.label)}<span class="dt">${fmtDate(t.on)}</span></div>`;
-    }).join('');
-  } else {
-    rows = '<div class="tt-none">Nothing yet</div>';
-  }
-  return `<div class="tt-name">${esc(g.name)}</div>${rows}`;
+function paintBlock(hk, bk) {
+  if (!stroke) return;
+  scopeKeys(hk, bk).forEach(k => {
+    const sk = hk + '|' + k;
+    if (stroke.has(sk)) return;
+    stroke.add(sk);
+    const rec = blockRec(hk, k);
+    if (activeTag === 'eraser') {
+      if (!rec.tags.length) return;
+      rec.tags = [];
+    } else if (activeTag) {
+      if (rec.tags.some(t => t.id === activeTag)) return;
+      rec.tags.push({ id: activeTag, on: new Date().toISOString() });
+    } else return;
+    save();
+    pushBlock(hk, k);
+    renderBlock(hk, k);
+  });
 }
+const mapEl = map.getContainer();
+function paintAtTouch(t) {
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  if (el && el._stHk) paintBlock(el._stHk, el._stBk);
+}
+mapEl.addEventListener('touchstart', e => {
+  if (!paintOn) return;
+  if (e.touches.length !== 1) { endStroke(); return; }
+  e.preventDefault(); beginStroke(); paintAtTouch(e.touches[0]);
+}, { passive: false });
+mapEl.addEventListener('touchmove', e => {
+  if (!paintOn || !stroke || e.touches.length !== 1) return;
+  e.preventDefault(); paintAtTouch(e.touches[0]);
+}, { passive: false });
+mapEl.addEventListener('touchend', endStroke);
+mapEl.addEventListener('touchcancel', endStroke);
 
-/* ---------- material chips ---------- */
+/* ---------- scope toggle ---------- */
+$('scopeBlock').addEventListener('click', () => { scope = 'block'; $('scopeBlock').classList.add('on'); $('scopeStreet').classList.remove('on'); });
+$('scopeStreet').addEventListener('click', () => { scope = 'street'; $('scopeStreet').classList.add('on'); $('scopeBlock').classList.remove('on'); });
+
+/* ---------- tactic chips ---------- */
 function refreshChips() {
   const box = $('chips');
   box.innerHTML = '';
-  const h = hoodKey ? hood() : null;
+  if (!activeTag || (activeTag !== 'eraser' && !tagById(activeTag))) activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
 
   DB.tags.forEach(t => {
     let count = 0;
-    if (h) for (const k in h.streets) {
-      if (groups[k] && h.streets[k].tags.some(x => x.id === t.id)) count++;
+    for (const hk in RT.hoods) {
+      const blocks = (DB.hoods[hk] && DB.hoods[hk].blocks) || {};
+      for (const bk in RT.hoods[hk].blocks)
+        if (blocks[bk] && blocks[bk].tags.some(x => x.id === t.id)) count++;
     }
     const chip = document.createElement('div');
     chip.className = 'chip' + (activeTag === t.id ? ' active' : '');
@@ -617,50 +794,45 @@ function refreshChips() {
     chip.tabIndex = 0;
     chip.innerHTML =
       `<input type="color" value="${t.color}" aria-label="Color for ${esc(t.label)}">` +
-      `<span class="blade" style="background:${t.color}">${esc(t.label)}</span>` +
-      `<span class="count" title="Streets with this material — click to spotlight">${count}${spotlightTag === t.id ? ' ◉' : ''}</span>` +
+      `<span class="blade ${onLight(t.color) ? 'on-light' : ''}" style="background:${t.color}">${esc(t.label)}</span>` +
+      `<span class="count" title="Blocks with this tactic — click to spotlight">${count}${spotlightTag === t.id ? ' ◉' : ''}</span>` +
       `<button class="del" aria-label="Delete ${esc(t.label)}">×</button>`;
-
     const pick = () => { activeTag = t.id; refreshChips(); };
     chip.addEventListener('click', pick);
     chip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
-
     chip.querySelector('input[type=color]').addEventListener('click', e => e.stopPropagation());
     chip.querySelector('input[type=color]').addEventListener('input', e => {
       t.color = e.target.value; save(); pushTags();
-      chip.querySelector('.blade').style.background = t.color;
-      restyleAll();
+      renderAll(); refreshChips();
     });
     chip.querySelector('.count').addEventListener('click', e => {
       e.stopPropagation();
       spotlightTag = (spotlightTag === t.id) ? null : t.id;
-      restyleAll(); refreshChips();
+      renderAll(); refreshChips();
     });
     chip.querySelector('.del').addEventListener('click', e => {
       e.stopPropagation();
-      if (!confirm(`Delete "${t.label}"? It will be removed from every street, in every neighborhood.`)) return;
+      if (!confirm(`Delete "${t.label}"? It will be removed from every block, in every area.`)) return;
       DB.tags = DB.tags.filter(x => x.id !== t.id);
-      for (const hk in DB.hoods) for (const sk in DB.hoods[hk].streets)
-        DB.hoods[hk].streets[sk].tags = DB.hoods[hk].streets[sk].tags.filter(x => x.id !== t.id);
+      for (const hk in DB.hoods) for (const bk in (DB.hoods[hk].blocks || {}))
+        DB.hoods[hk].blocks[bk].tags = DB.hoods[hk].blocks[bk].tags.filter(x => x.id !== t.id);
       if (activeTag === t.id) activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
       if (spotlightTag === t.id) spotlightTag = null;
-      save(); overwritePush(); restyleAll(); refreshChips();
+      save(); overwritePush(); renderAll(); refreshChips(); refreshAreas();
     });
     box.appendChild(chip);
   });
 
-  // eraser
   const er = document.createElement('div');
   er.className = 'chip eraser' + (activeTag === 'eraser' ? ' active' : '');
   er.setAttribute('role', 'button');
   er.tabIndex = 0;
-  er.innerHTML = `<span class="blade">Eraser — clear street</span>`;
+  er.innerHTML = `<span class="blade on-light">Eraser — clear blocks</span>`;
   const pickEr = () => { activeTag = 'eraser'; refreshChips(); };
   er.addEventListener('click', pickEr);
   er.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickEr(); } });
   box.appendChild(er);
 }
-
 $('addTag').addEventListener('click', () => {
   const label = $('newLabel').value.trim();
   if (!label) return;
@@ -670,71 +842,158 @@ $('addTag').addEventListener('click', () => {
 });
 $('newLabel').addEventListener('keydown', e => { if (e.key === 'Enter') $('addTag').click(); });
 
-/* ---------- data section ---------- */
-function refreshHoodline() {
-  const el = $('hoodline');
-  if (!hoodKey) { el.style.display = 'none'; return; }
-  const h = hood();
-  const total = Object.keys(groups).length;
-  let tagged = 0;
-  for (const k in groups) if (h.streets[k] && h.streets[k].tags.length) tagged++;
-  el.innerHTML = `<b>${esc(h.name)}</b><br>${tagged} / ${total} streets covered`;
-  el.style.display = 'block';
-}
-
-$('exportCsv').addEventListener('click', () => {
-  if (!hoodKey) { setStatus('Load a neighborhood first.', true); return; }
-  const h = hood();
-  const lines = ['Street,Material,Date tagged'];
-  const keys = Object.keys(groups).sort((a, b) => groups[a].name.localeCompare(groups[b].name));
-  keys.forEach(k => {
-    const rec = h.streets[k];
-    const tags = rec ? rec.tags.filter(t => tagById(t.id)) : [];
-    const q = s => '"' + String(s).replace(/"/g, '""') + '"';
-    if (!tags.length) lines.push(`${q(groups[k].name)},,`);
-    else tags.forEach(t => lines.push(`${q(groups[k].name)},${q(tagById(t.id).label)},${q(fmtDate(t.on))}`));
+/* ---------- areas list ---------- */
+function refreshAreas() {
+  const box = $('areas');
+  box.innerHTML = '';
+  const loaded = DB.loadedHoods.filter(h => RT.hoods[h.key]);
+  $('areaBtns').hidden = loaded.length < 2 && !DB.loadedHoods.some(h => !RT.hoods[h.key]);
+  loaded.forEach(h => {
+    const rt = RT.hoods[h.key];
+    const blocks = (DB.hoods[h.key] && DB.hoods[h.key].blocks) || {};
+    const total = Object.keys(rt.blocks).length;
+    let tagged = 0;
+    for (const bk in rt.blocks) if (blocks[bk] && blocks[bk].tags.length) tagged++;
+    const row = document.createElement('div');
+    row.className = 'area-row';
+    row.innerHTML = `<span class="a-name">${esc(h.name)}</span>` +
+      `<span class="a-count">${tagged}/${total}</span>` +
+      `<button class="ghost zoom" title="Zoom to ${esc(h.name)}">⌖</button>` +
+      `<button class="ghost wipe" title="Erase all tactics in ${esc(h.name)}">⟲</button>` +
+      `<button class="ghost drop" title="Remove ${esc(h.name)} from the map">×</button>`;
+    row.querySelector('.zoom').addEventListener('click', () => zoomArea(h.key));
+    row.querySelector('.wipe').addEventListener('click', () => {
+      if (!confirm('Erase every tactic in ' + h.name + '? This cannot be undone.')) return;
+      hoodData(h.key).blocks = {};
+      save(); pushClearHood(h.key); renderHood(h.key); refreshChips(); refreshAreas();
+    });
+    row.querySelector('.drop').addEventListener('click', () => {
+      map.removeLayer(rt.lg);
+      delete RT.hoods[h.key];
+      DB.loadedHoods = DB.loadedHoods.filter(x => x.key !== h.key);
+      save(); refreshChips(); refreshAreas();
+      setStatus(h.name + ' removed from the map. Its tagging is kept — add it back anytime.');
+    });
+    box.appendChild(row);
   });
-  download(h.name.replace(/\W+/g, '-').toLowerCase() + '-coverage.csv', lines.join('\n'), 'text/csv');
-});
+}
+function zoomArea(hk) { const rt = RT.hoods[hk]; if (rt && rt.bounds.isValid()) map.fitBounds(rt.bounds.pad(0.03)); }
+function viewAll() {
+  const all = L.latLngBounds([]);
+  for (const hk in RT.hoods) if (RT.hoods[hk].bounds.isValid()) all.extend(RT.hoods[hk].bounds);
+  Object.values(pointMarkers).forEach(m => all.extend(m.getLatLng()));
+  if (all.isValid()) map.fitBounds(all.pad(0.05));
+}
+$('viewAll').addEventListener('click', viewAll);
+$('reloadAreas').addEventListener('click', bootAreas);
 
-$('exportJson').addEventListener('click', () => {
-  download('street-tagger-backup.json', JSON.stringify(DB, null, 2), 'application/json');
-});
-
-$('importJson').addEventListener('click', () => $('filepick').click());
-$('filepick').addEventListener('change', async e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  try {
-    const incoming = JSON.parse(await f.text());
-    // merge tags by id
-    (incoming.tags || []).forEach(t => { if (!tagById(t.id)) DB.tags.push(t); });
-    // merge hoods / streets / tag entries
-    for (const hk in (incoming.hoods || {})) {
-      if (!DB.hoods[hk]) { DB.hoods[hk] = incoming.hoods[hk]; continue; }
-      const mine = DB.hoods[hk].streets, theirs = incoming.hoods[hk].streets || {};
-      for (const sk in theirs) {
-        if (!mine[sk]) { mine[sk] = theirs[sk]; continue; }
-        theirs[sk].tags.forEach(t => {
-          if (!mine[sk].tags.some(x => x.id === t.id)) mine[sk].tags.push(t);
-        });
-      }
-    }
-    save(); mergePush(); restyleAll(); refreshChips(); refreshHoodline();
-    setStatus('Import merged. Counts updated.');
-  } catch (err) {
-    setStatus('Import failed: not a valid backup file.', true);
+/* ---------- address points ---------- */
+function renderPoint(p) {
+  if (pointMarkers[p.id]) { pointsLG.removeLayer(pointMarkers[p.id]); }
+  const st = PT_STYLE[p.type] || PT_STYLE.query;
+  const m = L.circleMarker([p.lat, p.lng], { radius: 7, weight: 2.5, fillOpacity: 0.95, opacity: 1, ...st });
+  m.bindPopup(`<div class="pt-pop"><b>${PT_LABEL[p.type] || p.type}</b><br>${esc(p.address)}<br>` +
+              `<span style="font-family:'Source Code Pro',monospace;font-size:10.5px;color:#7c807b">${fmtDate(p.on)}</span><br>` +
+              `<button onclick="removePointUI('${p.id}')">Remove point</button></div>`);
+  m.addTo(pointsLG);
+  pointMarkers[p.id] = m;
+  applyPointVisibility(p.id);
+}
+function applyPointVisibility(id) {
+  const p = DB.points[id], m = pointMarkers[id];
+  if (!p || !m) return;
+  const show = p.type === 'coa' ? $('showCoa').checked : $('showQuery').checked;
+  if (show) { if (!pointsLG.hasLayer(m)) m.addTo(pointsLG); }
+  else pointsLG.removeLayer(m);
+}
+function refreshPoints() {
+  const ids = new Set(Object.keys(DB.points));
+  for (const id in pointMarkers) if (!ids.has(id)) { pointsLG.removeLayer(pointMarkers[id]); delete pointMarkers[id]; }
+  let nq = 0, nc = 0;
+  for (const id in DB.points) {
+    const p = DB.points[id];
+    if (p.type === 'coa') nc++; else nq++;
+    if (!pointMarkers[id]) renderPoint(p); else applyPointVisibility(id);
   }
+  $('nQuery').textContent = nq;
+  $('nCoa').textContent = nc;
+}
+window.removePointUI = function (id) {
+  if (pointMarkers[id]) { pointsLG.removeLayer(pointMarkers[id]); delete pointMarkers[id]; }
+  delete DB.points[id];
+  save(); pushPoint(id, null); refreshPoints();
+};
+$('showQuery').addEventListener('change', refreshPoints);
+$('showCoa').addEventListener('change', refreshPoints);
+
+$('ptUpload').addEventListener('click', () => $('ptFile').click());
+$('ptFile').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (f) importAddresses(await f.text());
   e.target.value = '';
 });
-
-$('clearHood').addEventListener('click', () => {
-  if (!hoodKey) return;
-  if (!confirm('Clear all tagging for ' + hood().name + '? This cannot be undone.')) return;
-  hood().streets = {};
-  save(); pushClearHood(hoodKey); restyleAll(); refreshChips(); refreshHoodline();
+$('ptAdd').addEventListener('click', () => {
+  const txt = $('ptPaste').value;
+  if (txt.trim()) { importAddresses(txt); $('ptPaste').value = ''; }
+});
+$('ptClear').addEventListener('click', () => {
+  const n = Object.keys(DB.points).length;
+  if (!n) return;
+  if (!confirm('Remove all ' + n + ' address points? This cannot be undone.')) return;
+  DB.points = {};
+  save(); pushClearPoints(); refreshPoints();
+  setPtStatus('All points cleared.');
 });
 
+const TYPE_WORDS = { 'query': 'query', 'q': 'query', 'change of address': 'coa', 'coa': 'coa', 'change': 'coa', 'moved': 'coa' };
+function parseAddressLines(text) {
+  const out = [];
+  const def = $('ptType').value;
+  text.split(/\r?\n/).forEach((raw, i) => {
+    let line = raw.trim().replace(/^"|"$/g, '');
+    if (!line) return;
+    if (i === 0 && /^address\b/i.test(line)) return; // header row
+    let type = def;
+    const parts = line.split(',');
+    const lastWord = parts[parts.length - 1].trim().toLowerCase();
+    if (TYPE_WORDS[lastWord]) { type = TYPE_WORDS[lastWord]; parts.pop(); line = parts.join(',').trim(); }
+    if (line) out.push({ address: line, type });
+  });
+  return out;
+}
+
+let geocoding = false;
+async function importAddresses(text) {
+  if (geocoding) { setPtStatus('Still working on the last list — hang on…', true); return; }
+  const items = parseAddressLines(text);
+  if (!items.length) { setPtStatus('No addresses found in that list.', true); return; }
+  geocoding = true;
+  const failed = [];
+  let done = 0;
+  for (const it of items) {
+    setPtStatus('Locating ' + (done + 1) + ' of ' + items.length + '… (about 1 per second)');
+    try {
+      const res = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=' + encodeURIComponent(it.address));
+      const hits = res.ok ? await res.json() : [];
+      if (hits.length) {
+        const id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const p = { id, address: it.address, type: it.type, lat: Number(hits[0].lat), lng: Number(hits[0].lon), on: new Date().toISOString() };
+        DB.points[id] = p;
+        save(); pushPoint(id, p); renderPoint(p);
+      } else failed.push(it.address);
+    } catch (e) { failed.push(it.address); }
+    done++;
+    if (done < items.length) await new Promise(r => setTimeout(r, 1100));
+  }
+  geocoding = false;
+  refreshPoints();
+  const okN = items.length - failed.length;
+  setPtStatus(okN + ' of ' + items.length + ' points added.' +
+    (failed.length ? '\nCouldn\'t locate:\n' + failed.slice(0, 8).join('\n') + (failed.length > 8 ? '\n…and ' + (failed.length - 8) + ' more. Tip: include city, state, and zip.' : '\nTip: include city, state, and zip.') : ''),
+    failed.length > 0);
+}
+
+/* ---------- exports / import ---------- */
 function download(filename, text, mime) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type: mime }));
@@ -742,25 +1001,79 @@ function download(filename, text, mime) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+$('exportCsv').addEventListener('click', () => {
+  const qcsv = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const lines = ['Kind,Area,Street or Address,Tactic or Type,Date'];
+  DB.loadedHoods.forEach(h => {
+    const rt = RT.hoods[h.key];
+    if (!rt) return;
+    const blocks = (DB.hoods[h.key] && DB.hoods[h.key].blocks) || {};
+    // aggregate blocks per street for a readable report
+    const perStreet = {};
+    for (const bk in rt.blocks) {
+      const name = rt.blocks[bk].name;
+      const st = perStreet[name] = perStreet[name] || { total: 0, byTag: {} };
+      st.total++;
+      (blocks[bk] ? blocks[bk].tags : []).forEach(t => {
+        const def = tagById(t.id);
+        if (!def) return;
+        const e = st.byTag[def.label] = st.byTag[def.label] || { n: 0, on: t.on };
+        e.n++;
+        if (t.on < e.on) e.on = t.on;
+      });
+    }
+    Object.keys(perStreet).sort().forEach(name => {
+      const st = perStreet[name];
+      const labels = Object.keys(st.byTag);
+      if (!labels.length) { lines.push(['Street', qcsv(h.name), qcsv(name), '', ''].join(',')); return; }
+      labels.forEach(lb => lines.push(['Street', qcsv(h.name), qcsv(name + ' (' + st.byTag[lb].n + '/' + st.total + ' blocks)'), qcsv(lb), qcsv(fmtDate(st.byTag[lb].on))].join(',')));
+    });
+  });
+  Object.values(DB.points).forEach(p =>
+    lines.push(['Point', '', qcsv(p.address), qcsv(PT_LABEL[p.type] || p.type), qcsv(fmtDate(p.on))].join(',')));
+  download('glw-block-by-block.csv', lines.join('\n'), 'text/csv');
+});
+$('exportJson').addEventListener('click', () => download('block-by-block-backup.json', JSON.stringify(DB, null, 2), 'application/json'));
+$('importJson').addEventListener('click', () => $('filepick').click());
+$('filepick').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    let incoming = JSON.parse(await f.text());
+    (incoming.tags || []).forEach(t => { if (!tagById(t.id)) DB.tags.push(t); });
+    for (const hk in (incoming.hoods || {})) {
+      const inH = incoming.hoods[hk];
+      const myH = hoodData(hk);
+      myH.name = myH.name || inH.name || '';
+      for (const bk in (inH.blocks || {})) {
+        if (!myH.blocks[bk]) { myH.blocks[bk] = inH.blocks[bk]; continue; }
+        (inH.blocks[bk].tags || []).forEach(t => {
+          if (!myH.blocks[bk].tags.some(x => x.id === t.id)) myH.blocks[bk].tags.push(t);
+        });
+      }
+    }
+    Object.assign(DB.points, incoming.points || {});
+    (incoming.loadedHoods || []).forEach(h => { if (!DB.loadedHoods.some(x => x.key === h.key)) DB.loadedHoods.push(h); });
+    save(); mergePush(); renderAll(); refreshChips(); refreshAreas(); refreshPoints();
+    setStatus('Import merged. Use "Reload areas" if new neighborhoods were included.');
+  } catch (err) { setStatus('Import failed: not a valid backup file.', true); }
+  e.target.value = '';
+});
 
 /* ---------- team sync (Firebase Realtime Database) ---------- */
 const SYNC_KEY = 'street-tagger-sync';
 let fbRef = null, syncLive = false;
 
-function getSetup() {
-  try { return JSON.parse(localStorage.getItem(SYNC_KEY)); } catch (e) { return null; }
-}
+function getSetup() { try { return JSON.parse(localStorage.getItem(SYNC_KEY)); } catch (e) { return null; } }
 function setSyncStatus(msg, isErr) {
   const el = $('syncStatus');
   el.textContent = msg;
   el.style.color = isErr ? 'var(--danger)' : '';
 }
-// Firebase keys can't contain . # $ / [ ] — encode them reversibly
 function sanKey(s) { return String(s).replace(/[.#$\/\[\]%]/g, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')); }
 function unsanKey(s) { return String(s).replace(/%([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))); }
 function arr(a) { return !a ? [] : (Array.isArray(a) ? a.filter(Boolean) : Object.values(a)); }
 
-// Accepts either a pasted firebaseConfig snippet or a teammate's setup code
 function parseSetup(text) {
   text = (text || '').trim();
   if (!text) return null;
@@ -795,7 +1108,7 @@ function loadFirebaseSdk() {
   });
 }
 
-// Union local data into what's already in the team database (used on first connect / import)
+/* Union local data into what's already in the team database */
 function mergedWithRemote(remote) {
   remote = remote || {};
   const rTags = arr(remote.tags);
@@ -803,36 +1116,37 @@ function mergedWithRemote(remote) {
   const rHoods = remote.hoods || {};
   for (const hk in DB.hoods) {
     const shk = sanKey(hk);
-    if (!rHoods[shk]) rHoods[shk] = { name: DB.hoods[hk].name || '', streets: {} };
-    if (!rHoods[shk].streets) rHoods[shk].streets = {};
-    const rs = rHoods[shk].streets;
-    for (const sk in DB.hoods[hk].streets) {
-      const rec = DB.hoods[hk].streets[sk];
+    if (!rHoods[shk]) rHoods[shk] = { name: DB.hoods[hk].name || '', blocks: {} };
+    if (!rHoods[shk].blocks) rHoods[shk].blocks = {};
+    const rb = rHoods[shk].blocks;
+    for (const bk in (DB.hoods[hk].blocks || {})) {
+      const rec = DB.hoods[hk].blocks[bk];
       if (!rec.tags.length) continue;
-      const ssk = sanKey(sk);
-      if (!rs[ssk]) { rs[ssk] = { name: rec.name, tags: rec.tags }; continue; }
-      rs[ssk].tags = arr(rs[ssk].tags);
-      rec.tags.forEach(t => { if (!rs[ssk].tags.some(x => x.id === t.id)) rs[ssk].tags.push(t); });
+      if (!rb[bk]) { rb[bk] = { name: rec.name, tags: rec.tags }; continue; }
+      rb[bk].tags = arr(rb[bk].tags);
+      rec.tags.forEach(t => { if (!rb[bk].tags.some(x => x.id === t.id)) rb[bk].tags.push(t); });
     }
   }
-  return { tags: rTags.length ? rTags : defaultDB().tags, hoods: rHoods };
+  const rPoints = remote.points || {};
+  for (const id in DB.points) if (!rPoints[id]) rPoints[id] = DB.points[id];
+  return { tags: rTags.length ? rTags : defaultTags(), hoods: rHoods, points: rPoints };
 }
 
-// Snapshot from the team database becomes our local truth
 function adoptRemote(val) {
   if (!val) return;
   if (val.tags) DB.tags = arr(val.tags);
   const hoods = {};
   for (const shk in (val.hoods || {})) {
-    const streets = {};
-    const rs = val.hoods[shk].streets || {};
-    for (const ssk in rs) streets[unsanKey(ssk)] = { name: rs[ssk].name || '', tags: arr(rs[ssk].tags) };
-    hoods[unsanKey(shk)] = { name: val.hoods[shk].name || '', streets };
+    const blocks = {};
+    const rb = val.hoods[shk].blocks || {};
+    for (const bk in rb) blocks[bk] = { name: rb[bk].name || '', tags: arr(rb[bk].tags) };
+    hoods[unsanKey(shk)] = { name: val.hoods[shk].name || '', blocks };
   }
   DB.hoods = hoods;
+  DB.points = val.points || {};
   if (activeTag !== 'eraser' && !tagById(activeTag)) activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
   if (spotlightTag && !tagById(spotlightTag)) spotlightTag = null;
-  save(); restyleAll(); refreshChips(); refreshHoodline();
+  save(); renderAll(); refreshChips(); refreshAreas(); refreshPoints();
 }
 
 async function connectSync(setup, isNew) {
@@ -842,7 +1156,6 @@ async function connectSync(setup, isNew) {
   if (!firebase.apps.length) firebase.initializeApp(setup.config);
   fbRef = firebase.database().ref('teams/' + sanKey(setup.team));
 
-  // First contact: merge whatever this device already has into the team data
   const snap = await fbRef.get();
   await fbRef.set(mergedWithRemote(snap.val()));
 
@@ -860,36 +1173,28 @@ async function connectSync(setup, isNew) {
 }
 
 /* granular pushes */
-function pushStreet(hk, sk) {
+function pushBlock(hk, bk) {
   if (!fbRef || !syncLive) return;
-  const rec = DB.hoods[hk] && DB.hoods[hk].streets[sk];
-  const ref = fbRef.child('hoods/' + sanKey(hk) + '/streets/' + sanKey(sk));
-  if (rec && rec.tags.length) ref.set(rec); else ref.set(rec ? { name: rec.name, tags: [] } : null);
+  const rec = DB.hoods[hk] && DB.hoods[hk].blocks[bk];
+  fbRef.child('hoods/' + sanKey(hk) + '/blocks/' + bk).set(rec && rec.tags.length ? rec : null);
 }
 function pushTags() { if (fbRef && syncLive) fbRef.child('tags').set(DB.tags); }
 function pushHoodName(hk, name) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKey(hk) + '/name').set(name); }
-function pushClearHood(hk) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKey(hk) + '/streets').set(null); }
+function pushClearHood(hk) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKey(hk) + '/blocks').set(null); }
+function pushClearLegacy(hk) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKey(hk) + '/streets').set(null); }
+function pushPoint(id, p) { if (fbRef && syncLive) fbRef.child('points/' + id).set(p); }
+function pushClearPoints() { if (fbRef && syncLive) fbRef.child('points').set(null); }
 function mergePush() { if (fbRef && syncLive) fbRef.get().then(s => fbRef.set(mergedWithRemote(s.val()))); }
 function overwritePush() {
   if (!fbRef || !syncLive) return;
   const hoods = {};
-  for (const hk in DB.hoods) {
-    const streets = {};
-    for (const sk in DB.hoods[hk].streets) streets[sanKey(sk)] = DB.hoods[hk].streets[sk];
-    hoods[sanKey(hk)] = { name: DB.hoods[hk].name || '', streets };
-  }
-  fbRef.set({ tags: DB.tags, hoods });
+  for (const hk in DB.hoods) hoods[sanKey(hk)] = { name: DB.hoods[hk].name || '', blocks: DB.hoods[hk].blocks || {} };
+  fbRef.set({ tags: DB.tags, hoods, points: DB.points });
 }
 
 /* sync UI */
-$('syncOpen').addEventListener('click', () => {
-  $('syncSetup').hidden = false;
-  $('syncOpen').hidden = true;
-});
-$('syncCancel').addEventListener('click', () => {
-  $('syncSetup').hidden = true;
-  $('syncOpen').hidden = false;
-});
+$('syncOpen').addEventListener('click', () => { $('syncSetup').hidden = false; $('syncOpen').hidden = true; });
+$('syncCancel').addEventListener('click', () => { $('syncSetup').hidden = true; $('syncOpen').hidden = false; });
 $('syncConnect').addEventListener('click', async () => {
   const setup = parseSetup($('syncConfig').value);
   if (!setup) { setSyncStatus('That doesn\'t look like a Firebase config or setup code. Paste the whole snippet, curly braces and all.', true); return; }
@@ -912,9 +1217,7 @@ $('syncShare').addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(code);
     setSyncStatus('Setup code copied — send it to a teammate. They paste it in "Set up sync" and hit Connect.');
-  } catch (e) {
-    prompt('Copy this setup code and send it to a teammate:', code);
-  }
+  } catch (e) { prompt('Copy this setup code and send it to a teammate:', code); }
 });
 $('syncOff').addEventListener('click', () => {
   if (!confirm('Turn off sync on this device? Your data stays here and on the team database — this device just stops sharing.')) return;
@@ -926,17 +1229,23 @@ $('syncOff').addEventListener('click', () => {
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+async function bootAreas() {
+  const list = DB.loadedHoods.slice();
+  for (const h of list) {
+    if (RT.hoods[h.key]) continue;
+    try { await addArea(h, { noZoom: true }); } catch (e) { /* keep going */ }
+  }
+  if (Object.keys(RT.hoods).length) viewAll();
+}
 const savedSetup = getSetup();
 if (savedSetup) {
-  connectSync(savedSetup, false).catch(e => setSyncStatus('Sync reconnect failed: ' + e.message + ' — will keep working locally.', true));
+  connectSync(savedSetup, false).catch(e => setSyncStatus('Sync reconnect failed: ' + e.message + ' — working locally for now.', true));
 }
 refreshChips();
-if (DB.lastHood) {
-  $('q').value = DB.lastHood.name;
-  loadStreets(DB.lastHood);
-} else {
-  setStatus('Search for a neighborhood to begin.');
-}
+refreshAreas();
+refreshPoints();
+if (DB.loadedHoods.length) bootAreas();
+else setStatus('Search for a neighborhood to begin — you can add as many as you like.');
 </script>
 </body>
 </html>
