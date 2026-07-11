@@ -226,11 +226,13 @@
   /* points */
   .pt-row { display: flex; gap: 6px; margin-bottom: 6px; }
   .pt-row select { flex: 1; }
-  .pt-legend { display: flex; gap: 14px; margin-top: 8px; font-size: 13px; }
-  .pt-legend label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-  .pt-legend .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid var(--glw-charcoal); }
-  .pt-legend input { accent-color: var(--glw-green); }
-  .pt-legend .n { font-family: 'Source Code Pro', monospace; font-size: 11px; color: var(--muted); }
+  .pt-type { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 2px; margin-top: 2px; }
+  .pt-type input[type="checkbox"] { accent-color: var(--glw-green); }
+  .pt-type input[type="color"] { width: 18px; height: 18px; border: none; padding: 0; background: none; cursor: pointer; border-radius: 50%; }
+  .pt-type .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .pt-type .n { font-family: 'Source Code Pro', monospace; font-size: 11px; color: var(--muted); }
+  .pt-type .del { background: none; border: none; color: var(--muted); font-size: 15px; padding: 0 3px; line-height: 1; }
+  .pt-type .del:hover { color: var(--danger); }
 
   .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .btn-grid button { font-size: 12.5px; padding: 7px 6px; }
@@ -331,12 +333,27 @@
       <button id="ptAdd">Add points</button>
       <button class="ghost" id="ptClear">Clear all points</button>
     </div>
-    <div class="pt-legend">
-      <label><input type="checkbox" id="showQuery" checked><span class="dot" style="background:var(--glw-yellow)"></span>Query <span class="n" id="nQuery">0</span></label>
-      <label><input type="checkbox" id="showCoa" checked><span class="dot" style="background:var(--glw-charcoal); border-color:var(--glw-yellow)"></span>Change of Addr. <span class="n" id="nCoa">0</span></label>
+    <div id="ptTypes"></div>
+    <div class="add-row">
+      <input type="color" id="ptNewColor" value="#39abe2" aria-label="New source color">
+      <input type="text" id="ptNewLabel" placeholder="Add a source…" aria-label="New source name">
+      <button id="ptAddType">Add</button>
     </div>
     <div class="status" id="ptStatus"></div>
     <input type="file" id="ptFile" accept=".csv,.txt" hidden>
+  </section>
+
+  <section>
+    <div class="sec-label">EDDM mail routes</div>
+    <div class="search-row">
+      <input type="text" id="eddmZip" placeholder="ZIP code — e.g. 15201" inputmode="numeric" aria-label="ZIP code for EDDM routes">
+      <button id="eddmLoad">Load</button>
+    </div>
+    <div id="eddmZips"></div>
+    <label class="opt-row"><input type="checkbox" id="eddmShow" checked> Show routes on map</label>
+    <div class="hint" id="eddmSummary">No routes selected yet.</div>
+    <p class="hint">These are USPS carrier routes — the ones you pick when buying an Every Door Direct Mail drop. Load a ZIP, click routes on the map to select them, and the door counts add up here. Take your selections to <b>eddm.usps.com</b> to book the mailing.</p>
+    <div class="status" id="eddmStatus"></div>
   </section>
 
   <section>
@@ -354,7 +371,7 @@
     <div class="sec-label">Team sync</div>
     <div class="hint" id="syncStatus" style="margin-top:0; margin-bottom:8px;">Off — data stays on this device.</div>
     <div id="syncSetup" hidden>
-      <textarea id="syncConfig" placeholder="Paste your Firebase config snippet here — or a setup code from a teammate" aria-label="Sync configuration"></textarea>
+      <textarea id="syncConfig" placeholder="Paste your Firebase config snippet — or a teammate's setup code, which looks like: glw-canvass@street-tagger-4f8a2" aria-label="Sync configuration"></textarea>
       <input type="text" id="teamCode" placeholder="Team code (same on every device)" aria-label="Team code" style="width:100%; margin-bottom:6px;">
       <div class="btn-grid">
         <button id="syncConnect">Connect</button>
@@ -389,11 +406,20 @@ const OVERPASS = [
 ];
 const UNTAGGED = { color: '#b3bab2', weight: 4, opacity: 0.8 };
 const DASH = 14;
-const PT_STYLE = {
-  query: { fillColor: '#feea00', color: '#3c3c3b' },
-  coa:   { fillColor: '#3c3c3b', color: '#feea00' }
-};
-const PT_LABEL = { query: 'Query', coa: 'Change of Address' };
+function defaultPtTypes() {
+  return [
+    { id: 'query', label: 'Query',             color: '#feea00' },
+    { id: 'coa',   label: 'Change of Address', color: '#3c3c3b' }
+  ];
+}
+function ptDef(id) { return (DB.ptTypes || []).find(t => t.id === id); }
+function ptLabel(id) { const d = ptDef(id); return d ? d.label : id; }
+function ptStyle(id) {
+  const d = ptDef(id);
+  const fill = d ? d.color : '#9aa099';
+  return { fillColor: fill, color: onLight(fill) ? '#3c3c3b' : '#ffffff' };
+}
+const ptHidden = {}; // per-device show/hide, by type id
 
 /* ---------- persistent state ---------- */
 function defaultTags() {
@@ -405,9 +431,11 @@ function defaultTags() {
   ];
 }
 function defaultDB() {
-  return { version: 2, tags: defaultTags(), hoods: {}, points: {}, loadedHoods: [] };
+  return { version: 2, tags: defaultTags(), hoods: {}, points: {}, eddm: { zips: {}, sel: {} }, loadedHoods: [] };
 }
 let DB = load();
+if (!DB.eddm) DB.eddm = { zips: {}, sel: {} };
+if (!DB.ptTypes || !DB.ptTypes.length) DB.ptTypes = defaultPtTypes();
 
 function load() {
   let db;
@@ -881,6 +909,7 @@ function zoomArea(hk) { const rt = RT.hoods[hk]; if (rt && rt.bounds.isValid()) 
 function viewAll() {
   const all = L.latLngBounds([]);
   for (const hk in RT.hoods) if (RT.hoods[hk].bounds.isValid()) all.extend(RT.hoods[hk].bounds);
+  for (const zip in eddmRT) if (eddmRT[zip].bounds.isValid()) all.extend(eddmRT[zip].bounds);
   Object.values(pointMarkers).forEach(m => all.extend(m.getLatLng()));
   if (all.isValid()) map.fitBounds(all.pad(0.05));
 }
@@ -890,9 +919,8 @@ $('reloadAreas').addEventListener('click', bootAreas);
 /* ---------- address points ---------- */
 function renderPoint(p) {
   if (pointMarkers[p.id]) { pointsLG.removeLayer(pointMarkers[p.id]); }
-  const st = PT_STYLE[p.type] || PT_STYLE.query;
-  const m = L.circleMarker([p.lat, p.lng], { radius: 7, weight: 2.5, fillOpacity: 0.95, opacity: 1, ...st });
-  m.bindPopup(`<div class="pt-pop"><b>${PT_LABEL[p.type] || p.type}</b><br>${esc(p.address)}<br>` +
+  const m = L.circleMarker([p.lat, p.lng], { radius: 7, weight: 2.5, fillOpacity: 0.95, opacity: 1, ...ptStyle(p.type) });
+  m.bindPopup(`<div class="pt-pop"><b>${esc(ptLabel(p.type))}</b><br>${esc(p.address)}<br>` +
               `<span style="font-family:'Source Code Pro',monospace;font-size:10.5px;color:#7c807b">${fmtDate(p.on)}</span><br>` +
               `<button onclick="removePointUI('${p.id}')">Remove point</button></div>`);
   m.addTo(pointsLG);
@@ -902,29 +930,89 @@ function renderPoint(p) {
 function applyPointVisibility(id) {
   const p = DB.points[id], m = pointMarkers[id];
   if (!p || !m) return;
-  const show = p.type === 'coa' ? $('showCoa').checked : $('showQuery').checked;
-  if (show) { if (!pointsLG.hasLayer(m)) m.addTo(pointsLG); }
+  if (!ptHidden[p.type]) { if (!pointsLG.hasLayer(m)) m.addTo(pointsLG); }
   else pointsLG.removeLayer(m);
+}
+function restylePoints() {
+  for (const id in pointMarkers) {
+    const p = DB.points[id];
+    if (p) pointMarkers[id].setStyle(ptStyle(p.type));
+  }
 }
 function refreshPoints() {
   const ids = new Set(Object.keys(DB.points));
   for (const id in pointMarkers) if (!ids.has(id)) { pointsLG.removeLayer(pointMarkers[id]); delete pointMarkers[id]; }
-  let nq = 0, nc = 0;
   for (const id in DB.points) {
-    const p = DB.points[id];
-    if (p.type === 'coa') nc++; else nq++;
-    if (!pointMarkers[id]) renderPoint(p); else applyPointVisibility(id);
+    if (!pointMarkers[id]) renderPoint(DB.points[id]); else applyPointVisibility(id);
   }
-  $('nQuery').textContent = nq;
-  $('nCoa').textContent = nc;
+  updatePtCounts();
 }
+function updatePtCounts() {
+  const counts = {};
+  for (const id in DB.points) counts[DB.points[id].type] = (counts[DB.points[id].type] || 0) + 1;
+  (DB.ptTypes || []).forEach(t => {
+    const el = document.getElementById('ptn-' + t.id);
+    if (el) el.textContent = counts[t.id] || 0;
+  });
+}
+function refreshPtTypes() {
+  // dropdown
+  const sel = $('ptType');
+  const keep = sel.value;
+  sel.innerHTML = '';
+  DB.ptTypes.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id; o.textContent = t.label;
+    sel.appendChild(o);
+  });
+  if (DB.ptTypes.some(t => t.id === keep)) sel.value = keep;
+  // legend rows
+  const box = $('ptTypes');
+  box.innerHTML = '';
+  DB.ptTypes.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'pt-type';
+    row.innerHTML =
+      `<input type="checkbox" ${ptHidden[t.id] ? '' : 'checked'} aria-label="Show ${esc(t.label)} points">` +
+      `<input type="color" value="${t.color}" aria-label="Color for ${esc(t.label)}">` +
+      `<span class="lbl">${esc(t.label)}</span>` +
+      `<span class="n" id="ptn-${t.id}">0</span>` +
+      `<button class="del" aria-label="Delete ${esc(t.label)}">×</button>`;
+    row.querySelector('input[type=checkbox]').addEventListener('change', e => {
+      ptHidden[t.id] = !e.target.checked;
+      refreshPoints();
+    });
+    row.querySelector('input[type=color]').addEventListener('input', e => {
+      t.color = e.target.value;
+      save(); pushPtTypes(); restylePoints();
+    });
+    row.querySelector('.del').addEventListener('click', () => {
+      const n = Object.values(DB.points).filter(p => p.type === t.id).length;
+      if (!confirm(`Delete "${t.label}"${n ? ' and its ' + n + ' point' + (n > 1 ? 's' : '') : ''}? This cannot be undone.`)) return;
+      DB.ptTypes = DB.ptTypes.filter(x => x.id !== t.id);
+      for (const id in DB.points) if (DB.points[id].type === t.id) { delete DB.points[id]; pushPoint(id, null); }
+      delete ptHidden[t.id];
+      save(); pushPtTypes(); refreshPtTypes(); refreshPoints();
+    });
+    box.appendChild(row);
+  });
+  updatePtCounts();
+}
+$('ptAddType').addEventListener('click', () => {
+  const label = $('ptNewLabel').value.trim();
+  if (!label) return;
+  if (DB.ptTypes.some(t => t.label.toLowerCase() === label.toLowerCase())) { setPtStatus('There\'s already a source called that.', true); return; }
+  DB.ptTypes.push({ id: 'pt-' + Date.now().toString(36), label, color: $('ptNewColor').value });
+  $('ptNewLabel').value = '';
+  save(); pushPtTypes(); refreshPtTypes();
+  $('ptType').value = DB.ptTypes[DB.ptTypes.length - 1].id;
+});
+$('ptNewLabel').addEventListener('keydown', e => { if (e.key === 'Enter') $('ptAddType').click(); });
 window.removePointUI = function (id) {
   if (pointMarkers[id]) { pointsLG.removeLayer(pointMarkers[id]); delete pointMarkers[id]; }
   delete DB.points[id];
   save(); pushPoint(id, null); refreshPoints();
 };
-$('showQuery').addEventListener('change', refreshPoints);
-$('showCoa').addEventListener('change', refreshPoints);
 
 $('ptUpload').addEventListener('click', () => $('ptFile').click());
 $('ptFile').addEventListener('change', async e => {
@@ -945,10 +1033,17 @@ $('ptClear').addEventListener('click', () => {
   setPtStatus('All points cleared.');
 });
 
-const TYPE_WORDS = { 'query': 'query', 'q': 'query', 'change of address': 'coa', 'coa': 'coa', 'change': 'coa', 'moved': 'coa' };
+const TYPE_ALIASES = { 'q': 'query', 'change of address': 'coa', 'change': 'coa', 'moved': 'coa' };
+function typeWordMap() {
+  const m = {};
+  DB.ptTypes.forEach(t => { m[t.label.toLowerCase()] = t.id; });
+  for (const w in TYPE_ALIASES) if (ptDef(TYPE_ALIASES[w])) m[w] = TYPE_ALIASES[w];
+  return m;
+}
 function parseAddressLines(text) {
   const out = [];
   const def = $('ptType').value;
+  const words = typeWordMap();
   text.split(/\r?\n/).forEach((raw, i) => {
     let line = raw.trim().replace(/^"|"$/g, '');
     if (!line) return;
@@ -956,7 +1051,7 @@ function parseAddressLines(text) {
     let type = def;
     const parts = line.split(',');
     const lastWord = parts[parts.length - 1].trim().toLowerCase();
-    if (TYPE_WORDS[lastWord]) { type = TYPE_WORDS[lastWord]; parts.pop(); line = parts.join(',').trim(); }
+    if (words[lastWord]) { type = words[lastWord]; parts.pop(); line = parts.join(',').trim(); }
     if (line) out.push({ address: line, type });
   });
   return out;
@@ -991,6 +1086,175 @@ async function importAddresses(text) {
   setPtStatus(okN + ' of ' + items.length + ' points added.' +
     (failed.length ? '\nCouldn\'t locate:\n' + failed.slice(0, 8).join('\n') + (failed.length > 8 ? '\n…and ' + (failed.length - 8) + ' more. Tip: include city, state, and zip.' : '\nTip: include city, state, and zip.') : ''),
     failed.length > 0);
+}
+
+/* ---------- EDDM mail routes (USPS carrier routes) ---------- */
+const EDDM_URL = 'https://gis.usps.com/arcgis/rest/services/EDDM/selectZIP/GPServer/routes/execute';
+map.createPane('eddmPane');
+map.getPane('eddmPane').style.zIndex = 350; // beneath the streets, so streets stay clickable
+const eddmRT = {}; // zip -> { lg, layers:{id:poly}, meta:{id:{...}}, bounds }
+const eddmFetching = {};
+
+function num(v) { const n = Number(v); return isFinite(n) ? n : 0; }
+function setEddmStatus(m, e) { const el = $('eddmStatus'); el.textContent = m || ''; el.className = 'status' + (e ? ' err' : ''); }
+
+function eddmJsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'eddmcb' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
+    const s = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('route service timed out')); }, 30000);
+    function cleanup() { clearTimeout(timer); delete window[cb]; s.remove(); }
+    window[cb] = d => { cleanup(); resolve(d); };
+    s.src = url + '&callback=' + cb;
+    s.onerror = () => { cleanup(); reject(new Error('route service unreachable')); };
+    document.head.appendChild(s);
+  });
+}
+
+async function fetchEddmZip(zip) {
+  const url = EDDM_URL + '?f=json&env%3AoutSR=4326&ZIP=' + zip + '&Rte_Box=R&UserName=EDDM';
+  let data;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    data = await res.json();
+  } catch (e) {
+    data = await eddmJsonp(url); // fallback if direct requests are blocked
+  }
+  if (data.error) throw new Error(data.error.message || 'route service error');
+  return (data.results && data.results[0] && data.results[0].value && data.results[0].value.features) || [];
+}
+
+async function loadEddmZip(zip, opts) {
+  opts = opts || {};
+  if (eddmRT[zip] || eddmFetching[zip]) return;
+  eddmFetching[zip] = true;
+  setEddmStatus('Loading routes for ' + zip + '…');
+  let feats;
+  try { feats = await fetchEddmZip(zip); }
+  catch (e) {
+    delete eddmFetching[zip];
+    setEddmStatus('Could not load routes for ' + zip + ' (' + e.message + '). The USPS service may be busy — try again in a minute.', true);
+    return;
+  }
+  delete eddmFetching[zip];
+  if (!feats.length) { setEddmStatus('USPS returned no routes for ' + zip + '. Double-check the ZIP.', true); return; }
+
+  const rt = eddmRT[zip] = { lg: L.layerGroup(), layers: {}, meta: {}, bounds: L.latLngBounds([]) };
+  if ($('eddmShow').checked) rt.lg.addTo(map);
+
+  feats.forEach((f, i) => {
+    const a = f.attributes || {};
+    const crid = a.CRID_ID || a.ZIP_CRID_ID || ('R' + (i + 1));
+    const id = zip + '-' + crid;
+    rt.meta[id] = {
+      zip, crid,
+      city: a.CITY_STATE || '',
+      res: num(a.RES_CNT), bus: num(a.BUS_CNT),
+      tot: num(a.TOT_CNT) || num(a.RES_CNT) + num(a.BUS_CNT)
+    };
+    const rings = ((f.geometry && f.geometry.rings) || []).map(r => r.map(pt => [pt[1], pt[0]]));
+    if (!rings.length) return;
+    const poly = L.polygon(rings, { pane: 'eddmPane', ...eddmStyle(id) });
+    poly.on('click', () => { if (!paintOn) toggleEddm(id); });
+    poly.on('mouseover', () => {
+      poly.setStyle({ weight: 3, opacity: 1 });
+      poly.bindTooltip(eddmTip(id), { sticky: true, className: 'street-tip', direction: 'top' }).openTooltip();
+    });
+    poly.on('mouseout', () => { poly.setStyle(eddmStyle(id)); poly.unbindTooltip(); });
+    poly.addTo(rt.lg);
+    rt.layers[id] = poly;
+    rt.bounds.extend(poly.getBounds());
+  });
+
+  DB.eddm.zips[zip] = true;
+  save(); pushEddmZips();
+  refreshEddm();
+  if (!opts.noZoom && rt.bounds.isValid()) map.fitBounds(rt.bounds.pad(0.05));
+  setEddmStatus(Object.keys(rt.layers).length + ' routes loaded for ' + zip + '. Click a route to select it.');
+}
+
+function eddmStyle(id) {
+  return DB.eddm.sel[id]
+    ? { color: '#009c41', weight: 2, opacity: 0.9, fillColor: '#009c41', fillOpacity: 0.28, dashArray: null }
+    : { color: '#3c3c3b', weight: 1, opacity: 0.55, fillColor: '#39abe2', fillOpacity: 0.05, dashArray: '4 4' };
+}
+function eddmTip(id) {
+  const zip = id.split('-')[0];
+  const m = eddmRT[zip] && eddmRT[zip].meta[id];
+  if (!m) return id;
+  return `<div class="tt-name">Route ${esc(m.crid)} · ${esc(m.zip)}</div>` +
+    (m.city ? `<div class="tt-sub">${esc(m.city)}</div>` : '') +
+    `<div class="tt-tag">${m.res.toLocaleString()} residential · ${m.bus.toLocaleString()} business · ${m.tot.toLocaleString()} total</div>` +
+    `<div class="tt-none">${DB.eddm.sel[id] ? 'Selected — click to remove' : 'Click to select'}</div>`;
+}
+
+function toggleEddm(id) {
+  const zip = id.split('-')[0];
+  const m = eddmRT[zip] && eddmRT[zip].meta[id];
+  if (DB.eddm.sel[id]) {
+    delete DB.eddm.sel[id];
+    pushEddmSel(id, null);
+  } else {
+    DB.eddm.sel[id] = { ...(m || { zip, crid: id, res: 0, bus: 0, tot: 0, city: '' }), on: new Date().toISOString() };
+    pushEddmSel(id, DB.eddm.sel[id]);
+  }
+  save();
+  if (eddmRT[zip] && eddmRT[zip].layers[id]) eddmRT[zip].layers[id].setStyle(eddmStyle(id));
+  refreshEddm();
+}
+
+function restyleEddm() {
+  for (const zip in eddmRT)
+    for (const id in eddmRT[zip].layers) eddmRT[zip].layers[id].setStyle(eddmStyle(id));
+}
+
+function refreshEddm() {
+  const box = $('eddmZips');
+  box.innerHTML = '';
+  Object.keys(DB.eddm.zips).sort().forEach(zip => {
+    const rt = eddmRT[zip];
+    const row = document.createElement('div');
+    row.className = 'area-row';
+    row.innerHTML = `<span class="a-name">ZIP ${esc(zip)}</span>` +
+      `<span class="a-count">${rt ? Object.keys(rt.layers).length + ' routes' : 'loading…'}</span>` +
+      `<button class="ghost zoom" title="Zoom to ${esc(zip)}">⌖</button>` +
+      `<button class="ghost drop" title="Remove ${esc(zip)} and deselect its routes">×</button>`;
+    row.querySelector('.zoom').addEventListener('click', () => { if (rt && rt.bounds.isValid()) map.fitBounds(rt.bounds.pad(0.05)); });
+    row.querySelector('.drop').addEventListener('click', () => {
+      if (!confirm('Remove ZIP ' + zip + ' routes from the map and deselect them?')) return;
+      if (rt) { map.removeLayer(rt.lg); delete eddmRT[zip]; }
+      delete DB.eddm.zips[zip];
+      Object.keys(DB.eddm.sel).forEach(id => {
+        if (DB.eddm.sel[id].zip === zip) { delete DB.eddm.sel[id]; pushEddmSel(id, null); }
+      });
+      save(); pushEddmZips(); refreshEddm();
+    });
+    box.appendChild(row);
+  });
+  const sels = Object.values(DB.eddm.sel);
+  const res = sels.reduce((s, x) => s + num(x.res), 0);
+  const tot = sels.reduce((s, x) => s + num(x.tot), 0);
+  $('eddmSummary').innerHTML = sels.length
+    ? `<b>${sels.length} route${sels.length > 1 ? 's' : ''} selected</b> — ${res.toLocaleString()} residential doors, ${tot.toLocaleString()} total deliveries.`
+    : 'No routes selected yet.';
+}
+
+$('eddmLoad').addEventListener('click', () => {
+  const zip = $('eddmZip').value.trim();
+  if (!/^\d{5}$/.test(zip)) { setEddmStatus('Enter a 5-digit ZIP code.', true); return; }
+  $('eddmZip').value = '';
+  loadEddmZip(zip);
+});
+$('eddmZip').addEventListener('keydown', e => { if (e.key === 'Enter') $('eddmLoad').click(); });
+$('eddmShow').addEventListener('change', () => {
+  const show = $('eddmShow').checked;
+  for (const zip in eddmRT) { if (show) eddmRT[zip].lg.addTo(map); else map.removeLayer(eddmRT[zip].lg); }
+});
+async function bootEddm() {
+  for (const zip of Object.keys(DB.eddm.zips)) {
+    try { await loadEddmZip(zip, { noZoom: true }); } catch (e) { /* keep going */ }
+  }
 }
 
 /* ---------- exports / import ---------- */
@@ -1030,7 +1294,9 @@ $('exportCsv').addEventListener('click', () => {
     });
   });
   Object.values(DB.points).forEach(p =>
-    lines.push(['Point', '', qcsv(p.address), qcsv(PT_LABEL[p.type] || p.type), qcsv(fmtDate(p.on))].join(',')));
+    lines.push(['Point', '', qcsv(p.address), qcsv(ptLabel(p.type)), qcsv(fmtDate(p.on))].join(',')));
+  Object.values(DB.eddm.sel).forEach(r =>
+    lines.push(['EDDM route', qcsv(r.zip), qcsv('Route ' + r.crid + (r.city ? ' — ' + r.city : '')), qcsv(num(r.res).toLocaleString() + ' residential doors'), qcsv(fmtDate(r.on))].join(',')));
   download('glw-block-by-block.csv', lines.join('\n'), 'text/csv');
 });
 $('exportJson').addEventListener('click', () => download('block-by-block-backup.json', JSON.stringify(DB, null, 2), 'application/json'));
@@ -1053,8 +1319,14 @@ $('filepick').addEventListener('change', async e => {
       }
     }
     Object.assign(DB.points, incoming.points || {});
+    (incoming.ptTypes || []).forEach(t => { if (!ptDef(t.id)) DB.ptTypes.push(t); });
+    if (incoming.eddm) {
+      Object.assign(DB.eddm.zips, incoming.eddm.zips || {});
+      for (const id in (incoming.eddm.sel || {})) if (!DB.eddm.sel[id]) DB.eddm.sel[id] = incoming.eddm.sel[id];
+    }
     (incoming.loadedHoods || []).forEach(h => { if (!DB.loadedHoods.some(x => x.key === h.key)) DB.loadedHoods.push(h); });
     save(); mergePush(); renderAll(); refreshChips(); refreshAreas(); refreshPoints();
+    refreshPtTypes(); restyleEddm(); refreshEddm(); bootEddm();
     setStatus('Import merged. Use "Reload areas" if new neighborhoods were included.');
   } catch (err) { setStatus('Import failed: not a valid backup file.', true); }
   e.target.value = '';
@@ -1077,15 +1349,21 @@ function arr(a) { return !a ? [] : (Array.isArray(a) ? a.filter(Boolean) : Objec
 function parseSetup(text) {
   text = (text || '').trim();
   if (!text) return null;
+  // Short setup code: team@project or team@database-host
+  const m0 = text.match(/^([\w.-]+)@([\w.-]+)$/);
+  if (m0) {
+    const host = m0[2].includes('.') ? m0[2] : m0[2] + '-default-rtdb.firebaseio.com';
+    return { config: { databaseURL: 'https://' + host }, team: m0[1] };
+  }
   try {
     const o = JSON.parse(atob(text));
-    if (o && o.config && o.config.apiKey) return o;
+    if (o && o.config && (o.config.apiKey || o.config.databaseURL)) return o;
   } catch (e) { /* not a setup code — try config snippet */ }
   const cfg = {};
   const re = /["']?(\w+)["']?\s*:\s*["']([^"']+)["']/g;
   let m;
   while ((m = re.exec(text))) cfg[m[1]] = m[2];
-  if (!cfg.apiKey || !cfg.projectId) return null;
+  if (!cfg.databaseURL && !cfg.projectId) return null;
   if (!cfg.databaseURL) cfg.databaseURL = 'https://' + cfg.projectId + '-default-rtdb.firebaseio.com';
   return { config: cfg, team: null };
 }
@@ -1129,7 +1407,16 @@ function mergedWithRemote(remote) {
   }
   const rPoints = remote.points || {};
   for (const id in DB.points) if (!rPoints[id]) rPoints[id] = DB.points[id];
-  return { tags: rTags.length ? rTags : defaultTags(), hoods: rHoods, points: rPoints };
+  const rEddm = remote.eddm || {};
+  const eddm = {
+    zips: { ...(rEddm.zips || {}), ...DB.eddm.zips },
+    sel: { ...(rEddm.sel || {}) }
+  };
+  for (const id in DB.eddm.sel) if (!eddm.sel[id]) eddm.sel[id] = DB.eddm.sel[id];
+  const rPt = arr(remote.ptTypes);
+  DB.ptTypes.forEach(t => { if (!rPt.some(x => x.id === t.id)) rPt.push(t); });
+  return { tags: rTags.length ? rTags : defaultTags(), hoods: rHoods, points: rPoints, eddm,
+           ptTypes: rPt.length ? rPt : defaultPtTypes() };
 }
 
 function adoptRemote(val) {
@@ -1144,9 +1431,12 @@ function adoptRemote(val) {
   }
   DB.hoods = hoods;
   DB.points = val.points || {};
+  if (val.eddm) DB.eddm = { zips: val.eddm.zips || {}, sel: val.eddm.sel || {} };
+  if (val.ptTypes) { DB.ptTypes = arr(val.ptTypes); refreshPtTypes(); restylePoints(); }
   if (activeTag !== 'eraser' && !tagById(activeTag)) activeTag = DB.tags[0] ? DB.tags[0].id : 'eraser';
   if (spotlightTag && !tagById(spotlightTag)) spotlightTag = null;
   save(); renderAll(); refreshChips(); refreshAreas(); refreshPoints();
+  restyleEddm(); refreshEddm(); bootEddm();
 }
 
 async function connectSync(setup, isNew) {
@@ -1184,12 +1474,15 @@ function pushClearHood(hk) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKe
 function pushClearLegacy(hk) { if (fbRef && syncLive) fbRef.child('hoods/' + sanKey(hk) + '/streets').set(null); }
 function pushPoint(id, p) { if (fbRef && syncLive) fbRef.child('points/' + id).set(p); }
 function pushClearPoints() { if (fbRef && syncLive) fbRef.child('points').set(null); }
+function pushPtTypes() { if (fbRef && syncLive) fbRef.child('ptTypes').set(DB.ptTypes); }
+function pushEddmSel(id, val) { if (fbRef && syncLive) fbRef.child('eddm/sel/' + id).set(val); }
+function pushEddmZips() { if (fbRef && syncLive) fbRef.child('eddm/zips').set(DB.eddm.zips); }
 function mergePush() { if (fbRef && syncLive) fbRef.get().then(s => fbRef.set(mergedWithRemote(s.val()))); }
 function overwritePush() {
   if (!fbRef || !syncLive) return;
   const hoods = {};
   for (const hk in DB.hoods) hoods[sanKey(hk)] = { name: DB.hoods[hk].name || '', blocks: DB.hoods[hk].blocks || {} };
-  fbRef.set({ tags: DB.tags, hoods, points: DB.points });
+  fbRef.set({ tags: DB.tags, hoods, points: DB.points, eddm: DB.eddm, ptTypes: DB.ptTypes });
 }
 
 /* sync UI */
@@ -1213,10 +1506,14 @@ $('syncConnect').addEventListener('click', async () => {
 $('syncShare').addEventListener('click', async () => {
   const setup = getSetup();
   if (!setup) return;
-  const code = btoa(JSON.stringify(setup));
+  let code;
+  const host = (setup.config.databaseURL || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  const short = host.match(/^([\w-]+)-default-rtdb\.firebaseio\.com$/);
+  if (host && /^[\w.-]+$/.test(setup.team)) code = setup.team + '@' + (short ? short[1] : host);
+  else code = btoa(JSON.stringify(setup)); // team codes with spaces fall back to the long form
   try {
     await navigator.clipboard.writeText(code);
-    setSyncStatus('Setup code copied — send it to a teammate. They paste it in "Set up sync" and hit Connect.');
+    setSyncStatus('Setup code copied: ' + code + ' — send it to a teammate. They paste it in "Set up sync" and hit Connect.');
   } catch (e) { prompt('Copy this setup code and send it to a teammate:', code); }
 });
 $('syncOff').addEventListener('click', () => {
@@ -1243,7 +1540,10 @@ if (savedSetup) {
 }
 refreshChips();
 refreshAreas();
+refreshPtTypes();
 refreshPoints();
+refreshEddm();
+bootEddm();
 if (DB.loadedHoods.length) bootAreas();
 else setStatus('Search for a neighborhood to begin — you can add as many as you like.');
 </script>
